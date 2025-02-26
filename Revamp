@@ -1,146 +1,131 @@
-ド ラ コ
-﻿
 local WindUI = loadstring(game:HttpGet("https://tree-hub.vercel.app/api/UI/WindUI"))()
 
 local Window = WindUI:CreateWindow({
-    Title = "DR Hub", 
-    Icon = "atom", 
-    Author = "by @draco", 
-    Folder = "CloudHub", 
+    Title = "DR Hub",
+    Icon = "atom",
+    Author = "by @draco",
+    Folder = "CloudHub",
     Size = UDim2.fromOffset(505, 325),
     KeySystem = {
-        Key = "XRHV1KS", 
-        Note = "Key In Discord", 
-        URL = "https://discord.gg/U3Ahz8MM", 
-        SaveKey = true, 
-    }, 
+        Key = "XRHV1KS",
+        Note = "Key In Discord",
+        URL = "https://discord.gg/U3Ahz8MM",
+        SaveKey = true,
+    },
     Transparent = true,
-    Theme = "Red", 
+    Theme = "Red",
     SideBarWidth = 175,
-    HasOutline = true, 
+    HasOutline = true,
 })
 
 -- General Tab
 local Tab1 = Window:Tab({
     Title = "General",
-    Icon = "globe", 
+    Icon = "globe",
 })
 
 Window:Divider()
 
--- Execution Tab
-local Tab2 = Window:Tab({
-    Title = "Execution",
-    Icon = "folder", 
-})
-
 -- Shooting & Indicator Section
-local Section1 = Tab1:Section({ 
+local Section1 = Tab1:Section({
     Title = "Shooting & Indicator",
     TextXAlignment = "Left",
     TextSize = 17,
 })
 
-local Dropdown = Tab1:Dropdown({
-    Title = "Shooting Type",
-    Desc = "",
-    Value = "Tab 1",
-    Multi = false,
-    AllowNone = true,
-    Values = {
-        "Silent Aim", "Camlock"
-    },
-    Callback = function(value)
-        print(value)
-        if value == "Camlock" then
-            Camlock()  -- Call the Camlock function when selected
-        end
-    end
-})
-
-local Toggle1 = Tab1:Toggle({
+local ToggleShooting = Tab1:Toggle({
     Title = "Enable Shooting",
     Desc = "",
     Value = true,
     Callback = function(state)
-        print(state)
+        print("Shooting: ", state)
     end,
 })
 
-local Toggle2 = Tab1:Toggle({
+local ToggleIndicator = Tab1:Toggle({
     Title = "Indicator",
     Desc = "",
     Value = true,
     Callback = function(state)
-        local RangeIndicatorState = state
+        if state then
+            EnableIndicator()
+        else
+            DisableIndicator()
+        end
+    end,
+})
 
-        if RangeIndicatorState then
-            local ScreenGui = Instance.new("ScreenGui")
-            ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+-- Optimized Goal Detection
+local function GetClosestGoal()
+    local closestGoal, minDist = nil, math.huge
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+    local torso = character and (character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso"))
+    
+    if not torso then return nil end
+    local playerPos = torso.Position
 
-            local TextLabel = Instance.new("TextLabel")
-            TextLabel.Parent = ScreenGui
-            TextLabel.Size = UDim2.new(0.3, 0, 0.05, 0)
-            TextLabel.Position = UDim2.new(0.35, 0, 0, 10)
-            TextLabel.BackgroundTransparency = 1
-            TextLabel.TextScaled = true
-            TextLabel.TextColor3 = Color3.new(1, 1, 1)
-            TextLabel.Font = Enum.Font.SourceSansBold
-            TextLabel.Text = ""
-
-            local function GetGoal()
-                local closestDistance = math.huge
-                local closestGoal = nil
-                local playerPosition = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character.PrimaryPart and game.Players.LocalPlayer.Character.PrimaryPart.Position
-
-                if not playerPosition then
-                    return nil, closestDistance
-                end
-
-                for _, area in ipairs({"Courts", "PracticeArea"}) do
-                    local container = game.Workspace:FindFirstChild(area)
-                    if container then
-                        for _, court in ipairs(container:GetChildren()) do
-                            for _, obj in ipairs(court:GetDescendants()) do
-                                if obj.Name == "Swish" and obj.Parent:FindFirstChildOfClass("TouchTransmitter") then
-                                    local magnitude = (playerPosition - obj.Parent.Position).Magnitude
-                                    if magnitude < closestDistance then
-                                        closestDistance = magnitude
-                                        closestGoal = obj.Parent
-                                    end
-                                end
-                            end
+    for _, area in ipairs({"Courts", "PracticeArea"}) do
+        local container = game.Workspace:FindFirstChild(area)
+        if container then
+            for _, court in ipairs(container:GetChildren()) do
+                for _, obj in ipairs(court:GetDescendants()) do
+                    if obj.Name == "Swish" and obj.Parent:FindFirstChildOfClass("TouchTransmitter") then
+                        local dist = (playerPos - obj.Parent.Position).Magnitude
+                        if dist < minDist then
+                            minDist = dist
+                            closestGoal = obj.Parent
                         end
                     end
                 end
-
-                return closestGoal, closestDistance
             end
+        end
+    end
 
-            local function IsInRange(dist)
-                return dist >= 59 and dist <= 72
-            end
+    return closestGoal, minDist
+end
 
-            local lastStatus = nil
-            local function UpdateRangeStatus()
-                local Goal, Distance = GetGoal()
-                local Character = game.Players.LocalPlayer.Character
-                local Torso = Character and (Character:FindFirstChild("Torso") or Character:FindFirstChild("UpperTorso"))
+-- Indicator Management
+local indicatorLabel
 
-                if not Torso then
-                    return
-                end
+local function UpdateIndicator()
+    if not indicatorLabel then return end
+    local goal, distance = GetClosestGoal()
+    
+    if not goal then
+        indicatorLabel.Text = "No Hoop Detected"
+        indicatorLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Red
+        return
+    end
 
-                local newStatus
-                if Goal then
-                    if IsInRange(math.floor(Distance)) then
-                        newStatus = "Perfect"
-                    else
-                        newStatus = "Out"
-                    end
-                else
-                    newStatus = "NoHoop"
-                end
+    local status = "Out"
+    if distance >= 59 and distance <= 72 then
+        status = "Perfect"
+        indicatorLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Green
+    else
+        indicatorLabel.TextColor3 = Color3.fromRGB(255, 165, 0) -- Orange
+    end
 
-                if newStatus ~= lastS
+    indicatorLabel.Text = "Range: " .. math.floor(distance) .. " (" .. status .. ")"
+end
 
+local function EnableIndicator()
+    if indicatorLabel then return end
+    local gui = Instance.new("ScreenGui", game.Players.LocalPlayer:WaitForChild("PlayerGui"))
+
+    indicatorLabel = Instance.new("TextLabel", gui)
+    indicatorLabel.Size = UDim2.new(0.3, 0, 0.05, 0)
+    indicatorLabel.Position = UDim2.new(0.35, 0, 0, 10)
+    indicatorLabel.BackgroundTransparency = 1
+    indicatorLabel.TextScaled = true
+    indicatorLabel.Font = Enum.Font.SourceSansBold
+
+    game:GetService("RunService").Heartbeat:Connect(UpdateIndicator)
+end
+
+local function DisableIndicator()
+    if indicatorLabel then
+        indicatorLabel.Parent:Destroy()
+        indicatorLabel = nil
+    end
+end
