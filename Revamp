@@ -1,3 +1,61 @@
+ド ラ コ
+draco000942
+Do Not Disturb
+
+ド ラ コ — 2/22/25, 11:52 AM
+I'll take it
+ド ラ コ — 2/24/25, 11:23 AM
+https://discord.gg/ayup
+kole — Today at 1:02 PM
+@ド ラ コ
+Whats the key boy
+https://discord.gg/U3Ahz8MM
+ド ラ コ — Today at 1:05 PM
+Ok big boy
+XRHV1KS
+kole — Today at 1:05 PM
+nigga why u using
+Xero reborns
+Source
+and made ur own script w it
+😭
+ド ラ コ — Today at 1:05 PM
+Ye
+w
+W
+Image
+It works but I had issues with the code
+So I changed it
+Why u hating
+I'm sorry
+Bro
+kole — Today at 1:12 PM
+im not
+This shit actually op
+u should gatekeep it
+ド ラ コ — Today at 1:13 PM
+ok
+ド ラ コ — Today at 1:33 PM
+local WindUI = loadstring(game:HttpGet("https://tree-hub.vercel.app/api/UI/WindUI"))()
+
+local Window = WindUI:CreateWindow({
+    Title = "DR Hub", 
+    Icon = "atom", 
+    Author = "by @draco", 
+Expand
+message.txt
+5 KB
+Here @kole
+W sourc
+kole — Today at 1:35 PM
+yk u can change the
+pass
+so it dont make it seem like
+its xeroreborn
+ド ラ コ — Today at 1:35 PM
+Wym
+Oh ye
+﻿
 local WindUI = loadstring(game:HttpGet("https://tree-hub.vercel.app/api/UI/WindUI"))()
 
 local Window = WindUI:CreateWindow({
@@ -140,230 +198,6 @@ local Toggle2 = Tab1:Toggle({
                     newStatus = "NoHoop"
                 end
 
-                if newStatus ~= lastStatus then
-                    if newStatus == "Perfect" then
-                        TextLabel.Text = "Perfect Shot Range!"
-                        TextLabel.TextColor3 = Color3.new(0, 1, 0)
-                        Torso.BrickColor = BrickColor.new("Lime green")
-                    elseif newStatus == "Out" then
-                        TextLabel.Text = "Out of Range"
-                        TextLabel.TextColor3 = Color3.new(1, 0, 0)
-                        Torso.BrickColor = BrickColor.new("Bright red")
-                    else
-                        TextLabel.Text = "No Hoop Detected"
-                        TextLabel.TextColor3 = Color3.new(1, 1, 1)
-                        Torso.BrickColor = BrickColor.new("White")
-                    end
-                    lastStatus = newStatus
-                end
-            end
-
-            game:GetService("RunService").RenderStepped:Connect(function()
-                if tick() % 0.2 < 0.02 then 
-                    UpdateRangeStatus()
-                end
-            end)
-        else
-            -- Destroy the indicator if it is toggled off
-            if ScreenGui then
-                ScreenGui:Destroy()
-            end
-        end
-    end
-})
-
--- Reach & Mags Section
-local Section2 = Tab1:Section({ 
-    Title = "Reach & Mags",
-    TextXAlignment = "Left",
-    TextSize = 17,
-})
-
-local Toggle3 = Tab1:Toggle({
-    Title = "Enable Reach + Mags",
-    Desc = "",
-    Value = true,
-    Callback = function(state)
-        print(state)
-    end,
-})
-
--- Slider for Reach Distance
-local Slider1 = Tab1:Slider({
-    Title = "Reach Distance",
-    Step = 1,
-    Value = {
-        Min = 0,
-        Max = 75,
-        Default = 70,
-    },
-    Callback = function(value)
-        MAX_DISTANCE = value
-        print("New MAX_DISTANCE: " .. MAX_DISTANCE)
-    end
-})
-
--- Slider for Mags Distance
-local Slider2 = Tab1:Slider({
-    Title = "Mags Distance",
-    Step = 1,
-    Value = {
-        Min = 0,
-        Max = 100,
-        Default = 70,
-    },
-    Callback = function(value)
-        MAX_DISTANCE = value
-        print("New MAX_DISTANCE: " .. MAX_DISTANCE)
-    end
-})
-
--- Player and Character Setup
-local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-local runService = game:GetService("RunService")
-
--- Function to simulate touch
-local function simulateTouch(part1, part2)
-    firetouchinterest(part1, part2, 0)  
-    task.wait(0.05)
-    firetouchinterest(part1, part2, 1)  
-end
-
--- Finding the Nearest Ball
-local function getNearestBall()
-    local nearestBall = nil
-    local nearestDistance = MAX_DISTANCE  
-    local searchScope = workspace:GetPartBoundsInBox(humanoidRootPart.CFrame, Vector3.new(MAX_DISTANCE, MAX_DISTANCE, MAX_DISTANCE))
-
-    for _, object in ipairs(searchScope) do
-        if object:IsA("BasePart") and object.Name:lower() == "ball" then
-            local distance = (object.Position - humanoidRootPart.Position).Magnitude
-            if distance <= nearestDistance then
-                nearestDistance = distance
-                nearestBall = object
-            end
-        end
-    end
-    return nearestBall, nearestDistance
-end
-
--- Heartbeat Function
-runService.Heartbeat:Connect(function()
-    local ball, distance = getNearestBall()
-    if ball then
-        simulateTouch(humanoidRootPart, ball)  
-        print("Touched nearest ball:", ball.Name, "at distance:", distance)
-    end
-end)
-
-local function Camlock()
-    local Players = game:GetService("Players")
-    local Workspace = game:GetService("Workspace")
-    local Player = Players.LocalPlayer
-    local Character = Player.Character or Player.CharacterAdded:Wait()
-    local Camera = Workspace.CurrentCamera
-    local Humanoid = Character:WaitForChild("Humanoid")
-    local UserInputService = game:GetService("UserInputService")
-
-    local CamlockEnabled = true  
-
-    local function GetGoal()
-        local Distance, Goal = math.huge, nil
-        local CharacterPosition = Character.PrimaryPart.Position  
-
-        local function CheckHoops(container)
-            if not container then return end
-            for _, court in ipairs(container:GetChildren()) do
-                for _, Obj in ipairs(court:GetDescendants()) do
-                    if Obj.Name == "Swish" and Obj.Parent:FindFirstChildOfClass("TouchTransmitter") then
-                        local HoopPosition = Obj.Parent.Position
-                        local Magnitude = (CharacterPosition - HoopPosition).Magnitude
-                        if Magnitude < Distance then
-                            Distance = Magnitude
-                            Goal = Obj.Parent
-                        end
-                    end
-                end
-            end
-        end
-
-        CheckHoops(Workspace:FindFirstChild("Courts"))
-        CheckHoops(Workspace:FindFirstChild("PracticeArea"))
-
-        return Goal, Distance
-    end
-
-    local function LowArc(dist)
-        if dist >= 59 and dist <= 61 then return -17
-        elseif dist >= 62 and dist <= 63 then return -16
-        elseif dist >= 64 and dist <= 65 then return -13
-        elseif dist >= 66 and dist <= 67 then return -11
-        elseif dist >= 68 and dist <= 69 then return -8
-        elseif dist >= 70 and dist <= 71 then return -5
-        elseif dist == 72 then return -2
-        else return 0
-        end
-    end
-
-    local function HighArc(dist)
-        if dist >= 59 and dist <= 62 then return 30
-        elseif dist >= 63 and dist <= 65 then return 28
-        elseif dist >= 66 and dist <= 67 then return 25
-        elseif dist >= 68 and dist <= 69 then return 22
-        elseif dist >= 70 and dist <= 71 then return 20
-        else return 15
-        end
-    end
-
-    local function CameraAndArcCalculate()
-        if not CamlockEnabled then return end
-        local Goal, Distance = GetGoal()
-
-        if Goal then
-            local HoopPosition = Goal.Position
-            local ArcAdjustment = HighArc(math.floor(Distance))  
-            if ArcAdjustment == 0 then
-                ArcAdjustment = LowArc(math.floor(Distance))  
-            end
-            
-            local BasketPosition = HoopPosition + Vector3.new(0, ArcAdjustment, 0)
-            
-            local LookDirection = (BasketPosition - Camera.CFrame.Position).unit
-            local UpwardOffset = Vector3.new(0, 0.3, 0)  
-            
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, BasketPosition + UpwardOffset)
-        end
-    end
-
-    local function ResetCamera()
-        Camera.CameraType = Enum.CameraType.Custom
-    end
-
-    -- Mouse button click event to toggle Camlock (Middle Click)
-    UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
-        if gameProcessedEvent then return end
-
-        -- Check for Middle Mouse Button (MouseButton2)
-        if input.UserInputType == Enum.UserInputType.MouseButton2 then
-            -- Toggle CamlockEnabled on middle mouse click
-            CamlockEnabled = not CamlockEnabled
-            if CamlockEnabled then
-                print("Camera lock enabled")
-            else
-                print("Camera lock disabled")
-            end
-        end
-    end)
-
-    Humanoid.StateChanged:Connect(function(_, NewState)
-        if CamlockEnabled and NewState == Enum.HumanoidStateType.Jumping then
-            CameraAndArcCalculate()
-        elseif NewState == Enum.HumanoidStateType.Landed then
-            ResetCamera()
-        end
-    end)
-end
-
-Camlock()
+                if newStatus ~= lastS
+message.txt
+5 KB
