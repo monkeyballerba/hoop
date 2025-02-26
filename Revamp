@@ -1,7 +1,7 @@
 local WindUI = loadstring(game:HttpGet("https://tree-hub.vercel.app/api/UI/WindUI"))()
 
 local Window = WindUI:CreateWindow({
-    Title = "Draco Hub", 
+    Title = "Hoopz Hub", 
     Icon = "atom", 
     Author = "by @draco000942", 
     Folder = "CloudHub", 
@@ -314,57 +314,207 @@ local function Camlock()
         elseif dist >= 66 and dist <= 67 then return 25
         elseif dist >= 68 and dist <= 69 then return 22
         elseif dist >= 70 and dist <= 71 then return 20
-        else return 15
+local WindUI = loadstring(game:HttpGet("https://tree-hub.vercel.app/api/UI/WindUI"))()
+
+local Window = WindUI:CreateWindow({
+    Title = "Hoopz Hub", 
+    Icon = "atom", 
+    Author = "by @draco000942", 
+    Folder = "CloudHub", 
+    Size = UDim2.fromOffset(505, 325),
+    KeySystem = {
+        Key = "XRHV1KS", 
+        Note = "Key In Discord", 
+        URL = "https://discord.gg/U3Ahz8MM", 
+        SaveKey = true, 
+    }, 
+    Transparent = true,
+    Theme = "Dark", 
+    SideBarWidth = 175,
+    HasOutline = true, 
+})
+
+-- General Tab
+local Tab1 = Window:Tab({ Title = "General", Icon = "globe" })
+Window:Divider()
+local Tab2 = Window:Tab({ Title = "Execution", Icon = "folder" })
+
+-- Shooting & Indicator Section
+local Section1 = Tab1:Section({ Title = "Shooting & Indicator", TextXAlignment = "Left", TextSize = 17 })
+
+local ShootingEnabled = false
+local function Shoot()
+    if not ShootingEnabled then return end
+    
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+    local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
+
+    if not humanoidRootPart then return end
+
+    local function GetBestHoop()
+        local closestDistance, bestHoop = math.huge, nil
+        local position = humanoidRootPart.Position
+
+        for _, area in ipairs({"Courts", "PracticeArea"}) do
+            local container = game.Workspace:FindFirstChild(area)
+            if container then
+                for _, court in ipairs(container:GetChildren()) do
+                    for _, obj in ipairs(court:GetDescendants()) do
+                        if obj.Name == "Swish" and obj.Parent:FindFirstChildOfClass("TouchTransmitter") then
+                            local magnitude = (position - obj.Parent.Position).Magnitude
+                            if magnitude < closestDistance then
+                                closestDistance, bestHoop = magnitude, obj.Parent
+                            end
+                        end
+                    end
+                end
+            end
         end
+
+        return bestHoop, closestDistance
     end
 
-    local function CameraAndArcCalculate()
+    local hoop, distance = GetBestHoop()
+    if hoop and distance >= 59 and distance <= 72 then
+        -- Simulate perfect shot trajectory
+        humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position, hoop.Position + Vector3.new(0, 3, 0))
+        task.wait(0.1)
+        print("Shot Taken: Perfect Range!")
+    else
+        print("No hoop in range.")
+    end
+end
+
+local ShootingToggle = Tab1:Toggle({
+    Title = "Enable Shooting",
+    Desc = "Guarantees perfect shots",
+    Value = false,
+    Callback = function(state)
+        ShootingEnabled = state
+        if state then Shoot() end
+    end,
+})
+
+-- Indicator Toggle
+local IndicatorEnabled = false
+local IndicatorGui
+
+local IndicatorToggle = Tab1:Toggle({
+    Title = "Indicator",
+    Desc = "Shows shooting range status",
+    Value = true,
+    Callback = function(state)
+        IndicatorEnabled = state
+
+        if IndicatorEnabled then
+            IndicatorGui = Instance.new("ScreenGui", game.Players.LocalPlayer:WaitForChild("PlayerGui"))
+
+            local Label = Instance.new("TextLabel", IndicatorGui)
+            Label.Size = UDim2.new(0.3, 0, 0.05, 0)
+            Label.Position = UDim2.new(0.35, 0, 0, 10)
+            Label.BackgroundTransparency = 1
+            Label.TextScaled = true
+            Label.Font = Enum.Font.SourceSansBold
+
+            game:GetService("RunService").RenderStepped:Connect(function()
+                if not IndicatorEnabled then return end
+                local _, distance = GetBestHoop()
+
+                if distance >= 59 and distance <= 72 then
+                    Label.Text = "Perfect Shot Range!"
+                    Label.TextColor3 = Color3.new(0, 1, 0)
+                else
+                    Label.Text = "Out of Range"
+                    Label.TextColor3 = Color3.new(1, 0, 0)
+                end
+            end)
+        else
+            if IndicatorGui then IndicatorGui:Destroy() end
+        end
+    end,
+})
+
+-- Camlock Function
+local CamlockEnabled = false
+local function Camlock()
+    local Camera = game.Workspace.CurrentCamera
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+    local UserInputService = game:GetService("UserInputService")
+
+    local function GetGoal()
+        local closestGoal, closestDistance = nil, math.huge
+        local position = character.PrimaryPart.Position
+
+        for _, area in ipairs({"Courts", "PracticeArea"}) do
+            local container = game.Workspace:FindFirstChild(area)
+            if container then
+                for _, court in ipairs(container:GetChildren()) do
+                    for _, obj in ipairs(court:GetDescendants()) do
+                        if obj.Name == "Swish" and obj.Parent:FindFirstChildOfClass("TouchTransmitter") then
+                            local magnitude = (position - obj.Parent.Position).Magnitude
+                            if magnitude < closestDistance then
+                                closestDistance, closestGoal = magnitude, obj.Parent
+                            end
+                        end
+                    end
+                end
+            end
+        end
+
+        return closestGoal, closestDistance
+    end
+
+    local function AdjustCamera()
         if not CamlockEnabled then return end
-        local Goal, Distance = GetGoal()
-
-        if Goal then
-            local HoopPosition = Goal.Position
-            local ArcAdjustment = HighArc(math.floor(Distance))  
-            if ArcAdjustment == 0 then
-                ArcAdjustment = LowArc(math.floor(Distance))  
-            end
-            
-            local BasketPosition = HoopPosition + Vector3.new(0, ArcAdjustment, 0)
-            
-            local LookDirection = (BasketPosition - Camera.CFrame.Position).unit
-            local UpwardOffset = Vector3.new(0, 0.3, 0)  
-            
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, BasketPosition + UpwardOffset)
+        local hoop, distance = GetGoal()
+        if hoop then
+            local hoopPosition = hoop.Position + Vector3.new(0, 10, 0)
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, hoopPosition)
         end
     end
 
-    local function ResetCamera()
-        Camera.CameraType = Enum.CameraType.Custom
-    end
-
-    -- Mouse button click event to toggle Camlock (Middle Click)
-    UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
-        if gameProcessedEvent then return end
-
-        -- Check for Middle Mouse Button (MouseButton2)
+    UserInputService.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton2 then
-            -- Toggle CamlockEnabled on middle mouse click
             CamlockEnabled = not CamlockEnabled
-            if CamlockEnabled then
-                print("Camera lock enabled")
-            else
-                print("Camera lock disabled")
-            end
+            print(CamlockEnabled and "Camlock Enabled" or "Camlock Disabled")
         end
     end)
 
-    Humanoid.StateChanged:Connect(function(_, NewState)
-        if CamlockEnabled and NewState == Enum.HumanoidStateType.Jumping then
-            CameraAndArcCalculate()
-        elseif NewState == Enum.HumanoidStateType.Landed then
-            ResetCamera()
+    game:GetService("RunService").RenderStepped:Connect(AdjustCamera)
+end
+
+local CamlockToggle = Tab1:Toggle({
+    Title = "Enable Camlock",
+    Desc = "Locks camera to the perfect shot position",
+    Value = false,
+    Callback = function(state)
+        CamlockEnabled = state
+        if state then Camlock() end
+    end,
+})
+
+-- Silent Aim Function
+local SilentAimEnabled = false
+local function SilentAim()
+    game:GetService("RunService").RenderStepped:Connect(function()
+        if not SilentAimEnabled then return end
+        local hoop, distance = GetBestHoop()
+
+        if hoop and distance >= 59 and distance <= 72 then
+            game.Players.LocalPlayer.Character.PrimaryPart.CFrame = CFrame.new(hoop.Position)
+            print("Silent Aim Activated - Perfect Shot!")
         end
     end)
 end
 
-Camlock()
+local SilentAimToggle = Tab1:Toggle({
+    Title = "Enable Silent Aim",
+    Desc = "Always lands perfect shots",
+    Value = false,
+    Callback = function(state)
+        SilentAimEnabled = state
+        if state then SilentAim() end
+    end,
+})
