@@ -33,14 +33,57 @@ local Section1 = Tab1:Section({
     TextSize = 17,
 })
 
+local Dropdown = Tab1:Dropdown({
+    Title = "Shooting Type",
+    Desc = "",
+    Value = "Tab 1",
+    Multi = false,
+    AllowNone = true,
+    Values = {
+        "Silent Aim", "Camlock"
+    },
+    Callback = function(value)
+        print(value)
+        if value == "Camlock" then
+            Camlock()  -- Call the Camlock function when selected
+        end
+    end
+})
+
 local ToggleShooting = Tab1:Toggle({
     Title = "Enable Shooting",
     Desc = "",
     Value = true,
     Callback = function(state)
-        print("Shooting: ", state)
+        print("Shooting Enabled:", state)
     end,
 })
+
+local indicatorLabel
+local function EnableIndicator()
+    if indicatorLabel then return end  -- Prevent duplicate indicators
+
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+    indicatorLabel = Instance.new("TextLabel", ScreenGui)
+    indicatorLabel.Size = UDim2.new(0.3, 0, 0.05, 0)
+    indicatorLabel.Position = UDim2.new(0.35, 0, 0, 10)
+    indicatorLabel.BackgroundTransparency = 1
+    indicatorLabel.TextScaled = true
+    indicatorLabel.TextColor3 = Color3.new(1, 1, 1)
+    indicatorLabel.Font = Enum.Font.SourceSansBold
+    indicatorLabel.Text = ""
+
+    game:GetService("RunService").Heartbeat:Connect(UpdateRangeStatus)
+end
+
+local function DisableIndicator()
+    if indicatorLabel then
+        indicatorLabel.Parent:Destroy()
+        indicatorLabel = nil
+    end
+end
 
 local ToggleIndicator = Tab1:Toggle({
     Title = "Indicator",
@@ -55,15 +98,14 @@ local ToggleIndicator = Tab1:Toggle({
     end,
 })
 
--- Optimized Goal Detection
-local function GetClosestGoal()
-    local closestGoal, minDist = nil, math.huge
+local function GetGoal()
+    local closestDistance, closestGoal = math.huge, nil
     local player = game.Players.LocalPlayer
     local character = player.Character
     local torso = character and (character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso"))
-    
-    if not torso then return nil end
-    local playerPos = torso.Position
+
+    if not torso then return nil, closestDistance end
+    local playerPosition = torso.Position
 
     for _, area in ipairs({"Courts", "PracticeArea"}) do
         local container = game.Workspace:FindFirstChild(area)
@@ -71,9 +113,9 @@ local function GetClosestGoal()
             for _, court in ipairs(container:GetChildren()) do
                 for _, obj in ipairs(court:GetDescendants()) do
                     if obj.Name == "Swish" and obj.Parent:FindFirstChildOfClass("TouchTransmitter") then
-                        local dist = (playerPos - obj.Parent.Position).Magnitude
-                        if dist < minDist then
-                            minDist = dist
+                        local distance = (playerPosition - obj.Parent.Position).Magnitude
+                        if distance < closestDistance then
+                            closestDistance = distance
                             closestGoal = obj.Parent
                         end
                     end
@@ -82,50 +124,94 @@ local function GetClosestGoal()
         end
     end
 
-    return closestGoal, minDist
+    return closestGoal, closestDistance
 end
 
--- Indicator Management
-local indicatorLabel
+local function IsInRange(distance)
+    return distance >= 59 and distance <= 72
+end
 
-local function UpdateIndicator()
+local lastStatus = nil
+
+function UpdateRangeStatus()
     if not indicatorLabel then return end
-    local goal, distance = GetClosestGoal()
-    
-    if not goal then
-        indicatorLabel.Text = "No Hoop Detected"
-        indicatorLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Red
-        return
-    end
 
-    local status = "Out"
-    if distance >= 59 and distance <= 72 then
-        status = "Perfect"
-        indicatorLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Green
+    local Goal, Distance = GetGoal()
+    local newStatus
+
+    if Goal then
+        if IsInRange(math.floor(Distance)) then
+            newStatus = "Perfect"
+            indicatorLabel.TextColor3 = Color3.new(0, 1, 0) -- Green
+        else
+            newStatus = "Out"
+            indicatorLabel.TextColor3 = Color3.new(1, 0.5, 0) -- Orange
+        end
     else
-        indicatorLabel.TextColor3 = Color3.fromRGB(255, 165, 0) -- Orange
+        newStatus = "No Hoop"
+        indicatorLabel.TextColor3 = Color3.new(1, 0, 0) -- Red
     end
 
-    indicatorLabel.Text = "Range: " .. math.floor(distance) .. " (" .. status .. ")"
-end
-
-local function EnableIndicator()
-    if indicatorLabel then return end
-    local gui = Instance.new("ScreenGui", game.Players.LocalPlayer:WaitForChild("PlayerGui"))
-
-    indicatorLabel = Instance.new("TextLabel", gui)
-    indicatorLabel.Size = UDim2.new(0.3, 0, 0.05, 0)
-    indicatorLabel.Position = UDim2.new(0.35, 0, 0, 10)
-    indicatorLabel.BackgroundTransparency = 1
-    indicatorLabel.TextScaled = true
-    indicatorLabel.Font = Enum.Font.SourceSansBold
-
-    game:GetService("RunService").Heartbeat:Connect(UpdateIndicator)
-end
-
-local function DisableIndicator()
-    if indicatorLabel then
-        indicatorLabel.Parent:Destroy()
-        indicatorLabel = nil
+    if newStatus ~= lastStatus then
+        indicatorLabel.Text = "Range: " .. math.floor(Distance) .. " (" .. newStatus .. ")"
+        lastStatus = newStatus
     end
 end
+
+-- 🛡️ AUTO GUARD SYSTEM 🛡️
+local AutoGuardEnabled = false
+local function GetClosestOpponent()
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+    if not character then return nil end
+
+    local closestPlayer = nil
+    local closestDistance = math.huge
+    local playerPosition = character:FindFirstChild("HumanoidRootPart") and character.HumanoidRootPart.Position
+
+    for _, opponent in ipairs(game.Players:GetPlayers()) do
+        if opponent ~= player and opponent.Character then
+            local opponentRoot = opponent.Character:FindFirstChild("HumanoidRootPart")
+            if opponentRoot then
+                local distance = (playerPosition - opponentRoot.Position).Magnitude
+                if distance < closestDistance and distance < 25 then  -- Only detect nearby players
+                    closestDistance = distance
+                    closestPlayer = opponent.Character
+                end
+            end
+        end
+    end
+    return closestPlayer
+end
+
+local function AutoGuard()
+    while AutoGuardEnabled do
+        local player = game.Players.LocalPlayer
+        local character = player.Character
+        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+        local rootPart = character and character:FindFirstChild("HumanoidRootPart")
+        local opponent = GetClosestOpponent()
+
+        if humanoid and rootPart and opponent then
+            local opponentRoot = opponent:FindFirstChild("HumanoidRootPart")
+            if opponentRoot then
+                local targetPosition = opponentRoot.Position + (opponentRoot.CFrame.LookVector * -2) -- Stay in front
+                rootPart.CFrame = CFrame.new(targetPosition, opponentRoot.Position) -- Face the opponent
+            end
+        end
+
+        wait(0.1) -- Smooth movement updates
+    end
+end
+
+local ToggleAutoGuard = Tab1:Toggle({
+    Title = "Auto Guard",
+    Desc = "Automatically follows the nearest opponent",
+    Value = false,
+    Callback = function(state)
+        AutoGuardEnabled = state
+        if state then
+            AutoGuard()
+        end
+    end,
+})
