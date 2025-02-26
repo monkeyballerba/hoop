@@ -19,121 +19,175 @@ local Window = WindUI:CreateWindow({
 })
 
 -- General Tab
-local Tab1 = Window:Tab({
-    Title = "General",
-    Icon = "globe", 
-})
-
+local Tab1 = Window:Tab({ Title = "General", Icon = "globe" })
 Window:Divider()
-
--- Execution Tab
-local Tab2 = Window:Tab({
-    Title = "Execution",
-    Icon = "folder", 
-})
+local Tab2 = Window:Tab({ Title = "Execution", Icon = "folder" })
 
 -- Shooting & Indicator Section
-local Section1 = Tab1:Section({ 
-    Title = "Shooting & Indicator",
-    TextXAlignment = "Left",
-    TextSize = 17,
+local Section1 = Tab1:Section({ Title = "Shooting & Indicator", TextXAlignment = "Left", TextSize = 17 })
+
+local ShootingType = "Silent Aim" -- Default
+
+Tab1:Dropdown({
+    Title = "Shooting Type",
+    Value = "Silent Aim",
+    Values = { "Silent Aim", "Camlock" },
+    Callback = function(value)
+        ShootingType = value
+        if value == "Camlock" then Camlock(true) end
+    end
 })
 
-local ToggleShooting = Tab1:Toggle({
+Tab1:Toggle({
     Title = "Enable Shooting",
-    Desc = "Auto-Shoots when Jumping",
     Value = true,
     Callback = function(state)
-        ShootingEnabled = state
+        print("Shooting Enabled:", state)
     end,
 })
 
--- Shooting System
-local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+Tab1:Toggle({
+    Title = "Indicator",
+    Value = true,
+    Callback = function(state)
+        if state then EnableIndicator() else DisableIndicator() end
+    end
+})
 
-local Player = Players.LocalPlayer
-local Character = Player.Character or Player.CharacterAdded:Wait()
-local Camera = Workspace.CurrentCamera
-local Humanoid = Character:WaitForChild("Humanoid")
+-- Reach & Mags Section
+local Section2 = Tab1:Section({ Title = "Reach & Mags", TextXAlignment = "Left", TextSize = 17 })
 
-local ShootingEnabled = true  -- Toggle for shooting system
-local AutoShootEnabled = true -- Auto-shoot when jumping
+Tab1:Toggle({
+    Title = "Enable Reach + Mags",
+    Value = true,
+    Callback = function(state)
+        print("Reach Enabled:", state)
+    end,
+})
 
--- Function to find the nearest hoop
-local function GetGoal()
-    local closestDistance = math.huge
-    local closestGoal = nil
-    local playerPosition = Character.PrimaryPart.Position
+Tab1:Slider({
+    Title = "Reach Distance",
+    Step = 1,
+    Value = { Min = 0, Max = 75, Default = 70 },
+    Callback = function(value)
+        MAX_DISTANCE = value
+        print("New MAX_DISTANCE:", value)
+    end
+})
 
-    local function CheckHoops(container)
-        if not container then return end
-        for _, court in ipairs(container:GetChildren()) do
-            for _, obj in ipairs(court:GetDescendants()) do
-                if obj.Name == "Swish" and obj.Parent:FindFirstChildOfClass("TouchTransmitter") then
-                    local hoopPos = obj.Parent.Position
-                    local distance = (playerPosition - hoopPos).Magnitude
-                    if distance < closestDistance then
-                        closestDistance = distance
-                        closestGoal = obj.Parent
+Tab1:Slider({
+    Title = "Mags Distance",
+    Step = 1,
+    Value = { Min = 0, Max = 100, Default = 70 },
+    Callback = function(value)
+        MAX_DISTANCE = value
+        print("New Mags Distance:", value)
+    end
+})
+
+-- === Optimized Indicator ===
+local function EnableIndicator()
+    local ScreenGui = Instance.new("ScreenGui", game.Players.LocalPlayer:WaitForChild("PlayerGui"))
+    local TextLabel = Instance.new("TextLabel", ScreenGui)
+    TextLabel.Size = UDim2.new(0.3, 0, 0.05, 0)
+    TextLabel.Position = UDim2.new(0.35, 0, 0, 10)
+    TextLabel.BackgroundTransparency = 1
+    TextLabel.TextScaled = true
+    TextLabel.TextColor3 = Color3.new(1, 1, 1)
+    TextLabel.Font = Enum.Font.SourceSansBold
+
+    local function GetGoal()
+        local closestGoal, closestDistance = nil, math.huge
+        local playerPos = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character.PrimaryPart.Position
+        if not playerPos then return nil, closestDistance end
+
+        for _, area in ipairs({ "Courts", "PracticeArea" }) do
+            local container = game.Workspace:FindFirstChild(area)
+            if container then
+                for _, court in ipairs(container:GetChildren()) do
+                    for _, obj in ipairs(court:GetDescendants()) do
+                        if obj.Name == "Swish" and obj.Parent:FindFirstChildOfClass("TouchTransmitter") then
+                            local dist = (playerPos - obj.Parent.Position).Magnitude
+                            if dist < closestDistance then
+                                closestDistance = dist
+                                closestGoal = obj.Parent
+                            end
+                        end
                     end
                 end
             end
         end
+        return closestGoal, closestDistance
     end
 
-    CheckHoops(Workspace:FindFirstChild("Courts"))
-    CheckHoops(Workspace:FindFirstChild("PracticeArea"))
-
-    return closestGoal, closestDistance
-end
-
--- Function to determine the best shooting arc
-local function GetPerfectArc(distance)
-    if distance < 60 then return 25  -- Close range arc
-    elseif distance <= 65 then return 28  -- Mid-range arc
-    elseif distance <= 70 then return 30  -- Slightly farther arc
-    else return 32  -- Max arc for long-range shots
+    local function UpdateRangeStatus()
+        local Goal, Distance = GetGoal()
+        if not Goal then TextLabel.Text = "No Hoop Detected"; return end
+        TextLabel.Text = Distance >= 59 and Distance <= 72 and "Perfect Shot Range!" or "Out of Range"
+        TextLabel.TextColor3 = Distance >= 59 and Distance <= 72 and Color3.new(0, 1, 0) or Color3.new(1, 0, 0)
     end
+
+    game:GetService("RunService").RenderStepped:Connect(function()
+        UpdateRangeStatus()
+    end)
 end
 
--- Function to adjust aim towards the hoop
-local function AimAtHoop()
-    local goal, distance = GetGoal()
-    if goal then
-        local targetPosition = goal.Position + Vector3.new(0, GetPerfectArc(math.floor(distance)), 0)
-        Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPosition)
+local function DisableIndicator()
+    for _, gui in pairs(game.Players.LocalPlayer.PlayerGui:GetChildren()) do
+        if gui:IsA("ScreenGui") and gui:FindFirstChildOfClass("TextLabel") then
+            gui:Destroy()
+        end
     end
 end
 
--- Function to simulate shooting
-local function ShootBall()
-    if not ShootingEnabled then return end
+-- === Camlock System ===
+local function Camlock(enabled)
+    local Camera = game.Workspace.CurrentCamera
+    local Player = game.Players.LocalPlayer
+    local Character = Player.Character or Player.CharacterAdded:Wait()
+    local Humanoid = Character:FindFirstChild("Humanoid")
+    local UserInputService = game:GetService("UserInputService")
 
-    local goal, distance = GetGoal()
-    if goal then
-        AimAtHoop() -- Ensure aim is perfect
-        task.wait(0.1) -- Small delay to adjust aim before shooting
+    local function GetGoal()
+        local closestGoal, closestDistance = nil, math.huge
+        local playerPos = Character.PrimaryPart.Position
 
-        -- Simulate a shot
-        print("Shooting with perfect arc at", distance, "studs!")
-        -- Here, you would fire the ball if the game allows scripting shots
+        for _, area in ipairs({ "Courts", "PracticeArea" }) do
+            local container = game.Workspace:FindFirstChild(area)
+            if container then
+                for _, court in ipairs(container:GetChildren()) do
+                    for _, obj in ipairs(court:GetDescendants()) do
+                        if obj.Name == "Swish" and obj.Parent:FindFirstChildOfClass("TouchTransmitter") then
+                            local dist = (playerPos - obj.Parent.Position).Magnitude
+                            if dist < closestDistance then
+                                closestDistance = dist
+                                closestGoal = obj.Parent
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        return closestGoal, closestDistance
     end
+
+    local function UpdateCamera()
+        if not enabled then return end
+        local Goal, Distance = GetGoal()
+        if Goal then
+            local TargetPosition = Goal.Position + Vector3.new(0, 10, 0)
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, TargetPosition)
+        end
+    end
+
+    game:GetService("RunService").RenderStepped:Connect(UpdateCamera)
+
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if not gameProcessed and input.UserInputType == Enum.UserInputType.MouseButton2 then
+            enabled = not enabled
+            print("Camlock:", enabled and "Enabled" or "Disabled")
+        end
+    end)
 end
 
--- Auto-Shoot when Jumping
-Humanoid.StateChanged:Connect(function(_, newState)
-    if AutoShootEnabled and newState == Enum.HumanoidStateType.Jumping then
-        ShootBall()
-    end
-end)
-
--- Manual Shooting on Mouse Click (Right Click)
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.UserInputType == Enum.UserInputType.MouseButton2 then
-        ShootBall()
-    end
-end)
+Camlock(true)
