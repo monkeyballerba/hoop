@@ -13,7 +13,7 @@ local Window = WindUI:CreateWindow({
         SaveKey = true, 
     }, 
     Transparent = true,
-    Theme = "Dark", 
+    Theme = "Rainbow", 
     SideBarWidth = 175,
     HasOutline = true, 
 })
@@ -356,6 +356,7 @@ local function Camlock()
             end
         end
     end)
+
     Humanoid.StateChanged:Connect(function(_, NewState)
         if CamlockEnabled and NewState == Enum.HumanoidStateType.Jumping then
             CameraAndArcCalculate()
