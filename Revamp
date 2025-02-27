@@ -1,165 +1,200 @@
 local WindUI = loadstring(game:HttpGet("https://tree-hub.vercel.app/api/UI/WindUI"))()
 
 local Window = WindUI:CreateWindow({
-    Title = "DR Hub",
-    Icon = "atom",
-    Author = "by @draco",
-    Folder = "CloudHub",
+    Title = "DR Hub", 
+    Icon = "atom", 
+    Author = "by @draco", 
+    Folder = "CloudHub", 
     Size = UDim2.fromOffset(505, 325),
     KeySystem = {
-        Key = "XRHV1KS",
-        Note = "Key In Discord",
-        URL = "https://discord.gg/U3Ahz8MM",
-        SaveKey = true,
-    },
+        Key = "XRHV1KS", 
+        Note = "Key In Discord", 
+        URL = "https://discord.gg/U3Ahz8MM", 
+        SaveKey = true, 
+    }, 
     Transparent = true,
-    Theme = "Red",
+    Theme = "Red", 
     SideBarWidth = 175,
-    HasOutline = true,
+    HasOutline = true, 
 })
 
 -- General Tab
 local Tab1 = Window:Tab({
     Title = "General",
-    Icon = "globe",
+    Icon = "globe", 
 })
 
 Window:Divider()
 
--- Shooting & Indicator Section
-local Section1 = Tab1:Section({
-    Title = "Shooting & Indicator",
+-- Execution Tab
+local Tab2 = Window:Tab({
+    Title = "Execution",
+    Icon = "folder", 
+})
+
+-- Define variables for executor features (e.g., Camlock, Silent Aim, Speed)
+local executorFeatures = {
+    CamlockEnabled = false,
+    SilentAimEnabled = false,
+    MAX_DISTANCE = 70,
+    SpeedValue = 16,  -- Default speed
+    SpeedEnabled = false,
+}
+
+-- Function to toggle Camlock
+local function toggleCamlock(state)
+    executorFeatures.CamlockEnabled = state
+    print("Camlock " .. (state and "enabled" or "disabled"))
+end
+
+-- Function to toggle Silent Aim
+local function toggleSilentAim(state)
+    executorFeatures.SilentAimEnabled = state
+    print("Silent Aim " .. (state and "enabled" or "disabled"))
+end
+
+-- Function to toggle Speed
+local function toggleSpeed(state)
+    executorFeatures.SpeedEnabled = state
+    print("Speed " .. (state and "enabled" or "disabled"))
+    -- Apply the walk speed if enabled
+    if executorFeatures.SpeedEnabled then
+        game:GetService("Players").LocalPlayer.Character.Humanoid.WalkSpeed = executorFeatures.SpeedValue
+    else
+        game:GetService("Players").LocalPlayer.Character.Humanoid.WalkSpeed = 16  -- Default walk speed
+    end
+end
+
+-- Execution Tab Section: Shooting Features
+local Section1 = Tab2:Section({ 
+    Title = "Shooting Features",
     TextXAlignment = "Left",
     TextSize = 17,
 })
 
-local Dropdown = Tab1:Dropdown({
-    Title = "Shooting Type",
-    Desc = "",
-    Value = "Tab 1",
-    Multi = false,
-    AllowNone = true,
-    Values = {
-        "Silent Aim", "Camlock"
+local ToggleCamlock = Tab2:Toggle({
+    Title = "Enable Camlock",
+    Desc = "Automatically locks the camera onto the basket.",
+    Value = false,
+    Callback = function(state)
+        toggleCamlock(state)
+    end,
+})
+
+local ToggleSilentAim = Tab2:Toggle({
+    Title = "Enable Silent Aim",
+    Desc = "Aim assistance for silent shooting.",
+    Value = false,
+    Callback = function(state)
+        toggleSilentAim(state)
+    end,
+})
+
+-- Execution Tab Section: Reach & Mags
+local Section2 = Tab2:Section({ 
+    Title = "Reach & Mags",
+    TextXAlignment = "Left",
+    TextSize = 17,
+})
+
+-- Slider for Reach Distance
+local Slider1 = Tab2:Slider({
+    Title = "Reach Distance",
+    Step = 1,
+    Value = {
+        Min = 0,
+        Max = 75,
+        Default = 70,
     },
     Callback = function(value)
-        print(value)
-        if value == "Camlock" then
-            Camlock()  -- Call the Camlock function when selected
-        elseif value == "Silent Aim" then
-            SilentAim()  -- Call the Silent Aim function when selected
-        end
+        executorFeatures.MAX_DISTANCE = value
+        print("New Reach Distance: " .. executorFeatures.MAX_DISTANCE)
     end
 })
 
-local ToggleShooting = Tab1:Toggle({
-    Title = "Enable Shooting",
-    Desc = "",
-    Value = true,
-    Callback = function(state)
-        print("Shooting: ", state)
-    end,
+-- Slider for Mags Distance
+local Slider2 = Tab2:Slider({
+    Title = "Mags Distance",
+    Step = 1,
+    Value = {
+        Min = 0,
+        Max = 100,
+        Default = 70,
+    },
+    Callback = function(value)
+        executorFeatures.MAX_DISTANCE = value
+        print("New Mags Distance: " .. executorFeatures.MAX_DISTANCE)
+    end
 })
 
-local ToggleIndicator = Tab1:Toggle({
-    Title = "Indicator",
-    Desc = "",
-    Value = true,
-    Callback = function(state)
-        if state then
-            EnableIndicator()
-        else
-            DisableIndicator()
+-- Slider for Speed
+local SliderSpeed = Tab2:Slider({
+    Title = "Walk Speed",
+    Step = 1,
+    Value = {
+        Min = 16,  -- Default speed value
+        Max = 100,  -- Maximum speed value
+        Default = 16,  -- Default walk speed
+    },
+    Callback = function(value)
+        executorFeatures.SpeedValue = value
+        if executorFeatures.SpeedEnabled then
+            game:GetService("Players").LocalPlayer.Character.Humanoid.WalkSpeed = executorFeatures.SpeedValue
         end
-    end,
+        print("New Walk Speed: " .. executorFeatures.SpeedValue)
+    end
 })
 
--- Optimized Goal Detection
-local function GetClosestGoal()
-    local closestGoal, minDist = nil, math.huge
-    local player = game.Players.LocalPlayer
-    local character = player.Character
-    local torso = character and (character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso"))
+-- Function to execute commands for executor
+local function executeCommand(command)
+    local success, result = pcall(function()
+        return loadstring(command)()  -- Run the provided Lua command
+    end)
     
-    if not torso then return nil end
-    local playerPos = torso.Position
-
-    for _, area in ipairs({"Courts", "PracticeArea"}) do
-        local container = game.Workspace:FindFirstChild(area)
-        if container then
-            for _, court in ipairs(container:GetChildren()) do
-                for _, obj in ipairs(court:GetDescendants()) do
-                    if obj.Name == "Swish" and obj.Parent:FindFirstChildOfClass("TouchTransmitter") then
-                        local dist = (playerPos - obj.Parent.Position).Magnitude
-                        if dist < minDist then
-                            minDist = dist
-                            closestGoal = obj.Parent
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    return closestGoal, minDist
-end
-
--- Indicator Management
-local indicatorLabel
-
-local function UpdateIndicator()
-    if not indicatorLabel then return end
-    local goal, distance = GetClosestGoal()
-    
-    if not goal then
-        indicatorLabel.Text = "No Hoop Detected"
-        indicatorLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Red
-        return
-    end
-
-    local status = "Out"
-    if distance >= 59 and distance <= 72 then
-        status = "Perfect"
-        indicatorLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Green
+    if success then
+        print("Command executed successfully.")
     else
-        indicatorLabel.TextColor3 = Color3.fromRGB(255, 165, 0) -- Orange
-    end
-
-    indicatorLabel.Text = "Range: " .. math.floor(distance) .. " (" .. status .. ")"
-end
-
-local function EnableIndicator()
-    if indicatorLabel then return end
-    local gui = Instance.new("ScreenGui", game.Players.LocalPlayer:WaitForChild("PlayerGui"))
-
-    indicatorLabel = Instance.new("TextLabel", gui)
-    indicatorLabel.Size = UDim2.new(0.3, 0, 0.05, 0)
-    indicatorLabel.Position = UDim2.new(0.35, 0, 0, 10)
-    indicatorLabel.BackgroundTransparency = 1
-    indicatorLabel.TextScaled = true
-    indicatorLabel.Font = Enum.Font.SourceSansBold
-
-    game:GetService("RunService").Heartbeat:Connect(UpdateIndicator)
-end
-
-local function DisableIndicator()
-    if indicatorLabel then
-        indicatorLabel.Parent:Destroy()
-        indicatorLabel = nil
+        print("Error executing command: " .. result)
     end
 end
 
--- Silent Aim Function (Fix)
-local function SilentAim()
-    -- This is where the Silent Aim logic goes. Replace it with your Silent Aim implementation.
-    print("Silent Aim Enabled")
-    -- Example: Automatically aim at the closest target
-    -- (You will need to implement Silent Aim mechanics based on your game's needs)
-end
+-- Add command input for the executor
+local CommandInput = Tab2:TextBox({
+    Title = "Enter Executor Command",
+    Desc = "Type your Lua code and press Enter to execute.",
+    Text = "",
+    Callback = function(input)
+        executeCommand(input)
+    end,
+})
 
--- Camlock Function (Fix)
-local function Camlock()
-    -- This is where the Camlock logic goes. Replace it with your Camlock implementation.
-    print("Camlock Enabled")
-    -- Example: Lock onto the nearest target (you'll need to handle locking logic)
-end
+-- Example of an execution loop for features like Camlock and Silent Aim
+game:GetService("RunService").Heartbeat:Connect(function()
+    if executorFeatures.CamlockEnabled then
+        -- Implement Camlock logic: Lock camera to the right arc (e.g., basket)
+        local camera = game:GetService("Workspace").CurrentCamera
+        local targetPosition = Vector3.new(50, 10, 50)  -- Example position for right arc or basket
+        camera.CFrame = CFrame.new(camera.CFrame.Position, targetPosition)
+        print("Camlock is active, camera is locked to the right arc.")
+    end
+
+    if executorFeatures.SilentAimEnabled then
+        -- Implement Silent Aim logic here
+        print("Silent Aim is active.")
+    end
+
+    if executorFeatures.SpeedEnabled then
+        -- Apply speed if enabled
+        game:GetService("Players").LocalPlayer.Character.Humanoid.WalkSpeed = executorFeatures.SpeedValue
+    end
+end)
+
+-- Add a toggle for enabling speed change
+local ToggleSpeed = Tab2:Toggle({
+    Title = "Enable Speed",
+    Desc = "Enable or disable speed change.",
+    Value = false,
+    Callback = function(state)
+        toggleSpeed(state)
+    end,
+})
