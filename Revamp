@@ -1,133 +1,163 @@
---// LOADING SCREEN + MUSIC CONFIG
-local loadingImageId = "rbxassetid://76701073073353"
-local loadingSoundId = "rbxassetid://92777104737981"
+--// Auto Green GUI with Drag and No Input Block
+-- GUI + Auto Green + Speed + Glide
+local autoGreen = false
+local ws = 16
 
---// LOADING GUI
+-- CONFIG
+local autoGreenEnabled = false
+local hookConnection
 local plr = game.Players.LocalPlayer
-local PlayerGui = plr:WaitForChild("PlayerGui")
+local char = plr.Character or plr.CharacterAdded:Wait()
+local hum = char:WaitForChild("Humanoid")
+local UIS = game:GetService("UserInputService")
 
-local loadingGui = Instance.new("ScreenGui", PlayerGui)
-loadingGui.Name = "LoadingGui"
-loadingGui.IgnoreGuiInset = true
-loadingGui.ResetOnSpawn = false
+-- GUI
+local player = game.Players.LocalPlayer
+local PlayerGui = player:WaitForChild("PlayerGui")
+-- Gui Setup
+local gui = Instance.new("ScreenGui", plr:WaitForChild("PlayerGui"))
+gui.Name = "ArcadeBBGui"
 
-local image = Instance.new("ImageLabel", loadingGui)
-image.Size = UDim2.new(1, 0, 1, 0)
-image.Position = UDim2.new(0, 0, 0, 0)
-image.Image = loadingImageId
-image.BackgroundTransparency = 1
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ArcadeBasketballGui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.Parent = PlayerGui
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 250, 0, 180)
+frame.Position = UDim2.new(0, 100, 0, 200)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.Active = true
+frame.Draggable = true
 
-local sound = Instance.new("Sound", game.SoundService)
-sound.SoundId = loadingSoundId
-sound.Volume = 1
-sound.Looped = false
-sound:Play()
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 200, 0, 100)
+Frame.Position = UDim2.new(0, 50, 0, 200)
+Frame.BackgroundTransparency = 0.2
+Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Draggable = true -- ✅ drag support
+Frame.Parent = ScreenGui
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Text = "🏀 Arcade BB GUI"
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 18
 
--- Wait 50 seconds before showing GUI
-task.delay(50, function()
-    loadingGui:Destroy()
-    sound:Destroy()
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.BackgroundTransparency = 1
+Title.Text = "🏀 Arcade Basketball"
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 18
+Title.Parent = Frame
+local toggle = Instance.new("TextButton", frame)
+toggle.Size = UDim2.new(0.9, 0, 0, 35)
+toggle.Position = UDim2.new(0.05, 0, 0, 40)
+toggle.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
+toggle.TextColor3 = Color3.new(1,1,1)
+toggle.Font = Enum.Font.SourceSansBold
+toggle.TextSize = 16
+toggle.Text = "Enable Auto Green"
 
-    --// MAIN GUI SCRIPT
-    local autoGreen = false
-    local ws = 16
-    local UIS = game:GetService("UserInputService")
-    local RS = game:GetService("RunService")
-    local hookConnection
-
-    local char = plr.Character or plr.CharacterAdded:Wait()
-    local hum = char:WaitForChild("Humanoid")
-
-    -- GUI SETUP
-    local gui = Instance.new("ScreenGui", PlayerGui)
-    gui.Name = "ArcadeBBGui"
-    gui.ResetOnSpawn = false
-
-    local frame = Instance.new("Frame", gui)
-    frame.Size = UDim2.new(0, 300, 0, 220)
-    frame.Position = UDim2.new(0.5, -150, 0.5, -110)
-    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    frame.Active = true
-    frame.Draggable = true
-
-    local title = Instance.new("TextLabel", frame)
-    title.Size = UDim2.new(1, 0, 0, 30)
-    title.Text = "🏀 Arcade Basketball"
-    title.BackgroundTransparency = 1
-    title.TextColor3 = Color3.new(1, 1, 1)
-    title.Font = Enum.Font.SourceSansBold
-    title.TextSize = 18
-
-    local toggle = Instance.new("TextButton", frame)
-    toggle.Size = UDim2.new(0.9, 0, 0, 35)
-    toggle.Position = UDim2.new(0.05, 0, 0, 40)
-    toggle.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
-    toggle.TextColor3 = Color3.new(1,1,1)
-    toggle.Font = Enum.Font.SourceSansBold
-    toggle.TextSize = 16
-    toggle.Text = "Enable Auto Green"
-
-    toggle.MouseButton1Click:Connect(function()
-        autoGreen = not autoGreen
-        toggle.Text = autoGreen and "✅ Auto Green ON" or "❌ Auto Green OFF"
-        toggle.BackgroundColor3 = autoGreen and Color3.fromRGB(20,200,20) or Color3.fromRGB(150,50,50)
-    end)
-
-    local speedLabel = Instance.new("TextLabel", frame)
-    speedLabel.Position = UDim2.new(0.05, 0, 0, 90)
-    speedLabel.Size = UDim2.new(0.9, 0, 0, 20)
-    speedLabel.BackgroundTransparency = 1
-    speedLabel.Text = "WalkSpeed: " .. ws
-    speedLabel.TextColor3 = Color3.new(1,1,1)
-    speedLabel.Font = Enum.Font.SourceSans
-    speedLabel.TextSize = 14
-
-    local speedBox = Instance.new("TextBox", frame)
-    speedBox.Size = UDim2.new(0.9, 0, 0, 30)
-    speedBox.Position = UDim2.new(0.05, 0, 0, 115)
-    speedBox.Text = tostring(ws)
-    speedBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    speedBox.TextColor3 = Color3.new(1,1,1)
-    speedBox.Font = Enum.Font.SourceSansBold
-    speedBox.TextSize = 16
-    speedBox.ClearTextOnFocus = false
-
-    speedBox.FocusLost:Connect(function()
-        local val = tonumber(speedBox.Text)
-        if val then
-            ws = math.clamp(val, 5, 100)
-            speedLabel.Text = "WalkSpeed: " .. ws
-        end
-    end)
-
-    -- GLIDE (G key)
-    UIS.InputBegan:Connect(function(i, g)
-        if g then return end
-        if i.KeyCode == Enum.KeyCode.G then
-            local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-            if root then
-                root.Velocity = root.CFrame.LookVector * 75 + Vector3.new(0,20,0)
-            end
-        end
-    end)
-
-    -- CONSTANT SPEED
-    RS.Heartbeat:Connect(function()
-        if plr.Character and plr.Character:FindFirstChild("Humanoid") then
-            plr.Character.Humanoid.WalkSpeed = ws
-        end
-    end)
-
-    -- HOOK AUTO GREEN
-    local bb
-    bb = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
-        local m = getnamecallmethod()
-        local args = {...}
-        if not checkcaller() and m == 'FireServer' and tostring(self) == 'Shoot' then
-            if autoGreen and args[1] == false then
-                args[2] = -0.98
-            end
-        end
-        return bb(self, unpack(args))
-    end))
+local Toggle = Instance.new("TextButton")
+Toggle.Size = UDim2.new(0.9, 0, 0, 40)
+Toggle.Position = UDim2.new(0.05, 0, 0.5, 0)
+Toggle.Text = "🧠 Enable Auto Green"
+Toggle.BackgroundColor3 = Color3.fromRGB(30, 150, 50)
+Toggle.TextColor3 = Color3.new(1, 1, 1)
+Toggle.Font = Enum.Font.SourceSansBold
+Toggle.TextSize = 20
+Toggle.AutoButtonColor = true
+Toggle.Parent = Frame
+-- AUTOGREEN TOGGLE
+local function enableAutoGreen()
+if hookConnection then return end -- already hooked
+toggle.MouseButton1Click:Connect(function()
+autoGreen = not autoGreen
+toggle.Text = autoGreen and "✅ Auto Green ON" or "❌ Auto Green OFF"
+toggle.BackgroundColor3 = autoGreen and Color3.fromRGB(20,200,20) or Color3.fromRGB(150,50,50)
 end)
+
+hookConnection = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)  
+    local method = getnamecallmethod()  
+    local args = {...}
+
+local speedLabel = Instance.new("TextLabel", frame)
+speedLabel.Position = UDim2.new(0.05, 0, 0, 90)
+speedLabel.Size = UDim2.new(0.9, 0, 0, 20)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Text = "WalkSpeed:"
+speedLabel.TextColor3 = Color3.new(1,1,1)
+speedLabel.Font = Enum.Font.SourceSans
+speedLabel.TextSize = 14
+
+if not checkcaller() and method == "FireServer" and tostring(self) == "Shoot" then  
+        if autoGreenEnabled and args[1] == false then  
+            args[2] = -0.98  
+        end  
+    end
+
+local speedBox = Instance.new("TextBox", frame)
+speedBox.Size = UDim2.new(0.9, 0, 0, 30)
+speedBox.Position = UDim2.new(0.05, 0, 0, 115)
+speedBox.Text = "16"
+speedBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+speedBox.TextColor3 = Color3.new(1,1,1)
+speedBox.Font = Enum.Font.SourceSansBold
+speedBox.TextSize = 16
+speedBox.ClearTextOnFocus = false
+
+return hookConnection(self, unpack(args))  
+end))
+
+end
+speedBox.FocusLost:Connect(function()
+local val = tonumber(speedBox.Text)
+if val then
+ws = math.clamp(val, 5, 100)
+speedLabel.Text = "WalkSpeed: " .. ws
+end
+end)
+
+Toggle.MouseButton1Click:Connect(function()
+autoGreenEnabled = not autoGreenEnabled
+game:GetService("RunService").Heartbeat:Connect(function()
+if plr.Character and plr.Character:FindFirstChild("Humanoid") then
+plr.Character.Humanoid.WalkSpeed = ws
+end
+end)
+
+if autoGreenEnabled then  
+    Toggle.Text = "✅ Auto Green ON"  
+    Toggle.BackgroundColor3 = Color3.fromRGB(20, 200, 20)  
+    enableAutoGreen()  
+else  
+    Toggle.Text = "❌ Auto Green OFF"  
+    Toggle.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+
+UIS.InputBegan:Connect(function(i,g)
+if g then return end
+if i.KeyCode == Enum.KeyCode.G then
+local root = plr.Character:FindFirstChild("HumanoidRootPart")
+if root then
+root.Velocity = root.CFrame.LookVector * 75 + Vector3.new(0,20,0)
+end
+end
+end)
+-- Auto Green Hook
+local bb
+bb = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+local m = getnamecallmethod()
+local args = {...}
+if not checkcaller() and m == 'FireServer' and tostring(self) == 'Shoot' then
+if autoGreen and args[1] == false then
+args[2] = -0.98
+end
+end
+return bb(self, unpack(args))
+end)) 
