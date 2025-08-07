@@ -1,11 +1,4 @@
---// GUI + Arcade Basketball Auto Score (RemoteEvent version)
-
--- CONFIGURATION
-local remoteEventName = "ShootEvent"  -- Change this to your actual RemoteEvent name
-local remoteEventParent = game:GetService("ReplicatedStorage") -- Usually ReplicatedStorage
-
--- Example arguments to fire the RemoteEvent; change as needed!
-local shootArgs = {"Green", Vector3.new(0, 50, 0)}  
+--// GUI + Toggle Auto Green
 
 -- GUI CREATION
 local ScreenGui = Instance.new("ScreenGui")
@@ -33,24 +26,43 @@ Title.Parent = Frame
 local Button = Instance.new("TextButton")
 Button.Size = UDim2.new(0.9, 0, 0, 40)
 Button.Position = UDim2.new(0.05, 0, 0.5, 0)
-Button.Text = "🧠 Auto Score"
+Button.Text = "🧠 Enable Auto Green"
 Button.BackgroundColor3 = Color3.fromRGB(30, 150, 50)
 Button.TextColor3 = Color3.new(1, 1, 1)
 Button.Font = Enum.Font.SourceSansBold
 Button.TextSize = 20
 Button.Parent = Frame
 
--- BUTTON FUNCTION
+-- TOGGLE LOGIC
+local autoGreenEnabled = false
+local originalHook
+local hookedFunction
+
 Button.MouseButton1Click:Connect(function()
-    local remote = remoteEventParent:FindFirstChild(remoteEventName)
-    if remote then
-        remote:FireServer(unpack(shootArgs))
-        Button.Text = "✅ Greened!"
-        wait(0.5)
-        Button.Text = "🧠 Auto Score"
+    autoGreenEnabled = not autoGreenEnabled
+
+    if autoGreenEnabled then
+        Button.Text = "✅ Auto Green ON"
+        Button.BackgroundColor3 = Color3.fromRGB(20, 200, 20)
+
+        originalHook = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+            local method = getnamecallmethod()
+            local args = {...}
+
+            if not checkcaller() and method == "FireServer" and tostring(self) == "Shoot" and args[1] == false then
+                args[2] = -0.98
+            end
+
+            return originalHook(self, unpack(args))
+        end))
+
     else
-        Button.Text = "❌ Remote Not Found"
-        wait(0.5)
-        Button.Text = "🧠 Auto Score"
+        Button.Text = "❌ Auto Green OFF"
+        Button.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+
+        -- Since we can't truly unhook, we just stop modifying
+        originalHook = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+            return originalHook(self, ...)
+        end))
     end
 end)
