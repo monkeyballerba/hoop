@@ -1,28 +1,133 @@
--- Modern UI Inspired GUI (Dribble Glide + Slider + Auto Green Toggle) -- Works on KRNL
+--// LOADING SCREEN + MUSIC CONFIG
+local loadingImageId = "rbxassetid://76701073073353"
+local loadingSoundId = "rbxassetid://92777104737981"
 
-local Players = game:GetService("Players") local UIS = game:GetService("UserInputService") local RS = game:GetService("RunService")
+--// LOADING GUI
+local plr = game.Players.LocalPlayer
+local PlayerGui = plr:WaitForChild("PlayerGui")
 
-local player = Players.LocalPlayer local char = player.Character or player.CharacterAdded:Wait() local hum = char:WaitForChild("Humanoid") local root = char:WaitForChild("HumanoidRootPart")
+local loadingGui = Instance.new("ScreenGui", PlayerGui)
+loadingGui.Name = "LoadingGui"
+loadingGui.IgnoreGuiInset = true
+loadingGui.ResetOnSpawn = false
 
-local autoGreen = false local glideSpeed = 50
+local image = Instance.new("ImageLabel", loadingGui)
+image.Size = UDim2.new(1, 0, 1, 0)
+image.Position = UDim2.new(0, 0, 0, 0)
+image.Image = loadingImageId
+image.BackgroundTransparency = 1
 
--- GUI local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui")) local container = Instance.new("Frame", gui) container.Size = UDim2.new(0, 300, 0, 230) container.Position = UDim2.new(0.5, -150, 0.5, -115) container.BackgroundColor3 = Color3.fromRGB(20, 20, 20) container.BorderSizePixel = 0 container.BackgroundTransparency = 0.1 container.Name = "ArcadeUI" container.Active = true container.Draggable = true
+local sound = Instance.new("Sound", game.SoundService)
+sound.SoundId = loadingSoundId
+sound.Volume = 1
+sound.Looped = false
+sound:Play()
 
-local title = Instance.new("TextLabel", container) title.Size = UDim2.new(1, 0, 0, 35) title.Text = "🏀 Arcade Basketball" title.BackgroundTransparency = 1 title.TextColor3 = Color3.new(1, 1, 1) title.Font = Enum.Font.GothamBold title.TextSize = 20
+-- Wait 50 seconds before showing GUI
+task.delay(50, function()
+    loadingGui:Destroy()
+    sound:Destroy()
 
--- Auto Green Switch local toggle = Instance.new("TextButton", container) toggle.Position = UDim2.new(0.05, 0, 0, 45) toggle.Size = UDim2.new(0.9, 0, 0, 35) toggle.Text = "Enable Auto Green" toggle.BackgroundColor3 = Color3.fromRGB(30, 30, 30) toggle.TextColor3 = Color3.new(1, 1, 1) toggle.Font = Enum.Font.Gotham toggle.TextSize = 16
+    --// MAIN GUI SCRIPT
+    local autoGreen = false
+    local ws = 16
+    local UIS = game:GetService("UserInputService")
+    local RS = game:GetService("RunService")
+    local hookConnection
 
-toggle.MouseButton1Click:Connect(function() autoGreen = not autoGreen toggle.Text = autoGreen and "✅ Auto Green ON" or "❌ Auto Green OFF" toggle.BackgroundColor3 = autoGreen and Color3.fromRGB(20,150,20) or Color3.fromRGB(50,30,30) end)
+    local char = plr.Character or plr.CharacterAdded:Wait()
+    local hum = char:WaitForChild("Humanoid")
 
--- Dribble Glide Label local glideLabel = Instance.new("TextLabel", container) glideLabel.Position = UDim2.new(0.05, 0, 0, 90) glideLabel.Size = UDim2.new(0.9, 0, 0, 20) glideLabel.BackgroundTransparency = 1 glideLabel.Text = "Dribble Glide Speed: " .. glideSpeed glideLabel.TextColor3 = Color3.new(1, 1, 1) glideLabel.Font = Enum.Font.Gotham glideLabel.TextSize = 14
+    -- GUI SETUP
+    local gui = Instance.new("ScreenGui", PlayerGui)
+    gui.Name = "ArcadeBBGui"
+    gui.ResetOnSpawn = false
 
--- Glide Slider (TextBox) local glideSlider = Instance.new("TextBox", container) glideSlider.Position = UDim2.new(0.05, 0, 0, 115) glideSlider.Size = UDim2.new(0.9, 0, 0, 30) glideSlider.BackgroundColor3 = Color3.fromRGB(40, 40, 40) glideSlider.Text = tostring(glideSpeed) glideSlider.TextColor3 = Color3.new(1, 1, 1) glideSlider.Font = Enum.Font.GothamSemibold glideSlider.TextSize = 16 glideSlider.ClearTextOnFocus = false
+    local frame = Instance.new("Frame", gui)
+    frame.Size = UDim2.new(0, 300, 0, 220)
+    frame.Position = UDim2.new(0.5, -150, 0.5, -110)
+    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    frame.Active = true
+    frame.Draggable = true
 
-glideSlider.FocusLost:Connect(function() local new = tonumber(glideSlider.Text) if new then glideSpeed = math.clamp(new, 10, 150) glideLabel.Text = "Dribble Glide Speed: " .. glideSpeed end end)
+    local title = Instance.new("TextLabel", frame)
+    title.Size = UDim2.new(1, 0, 0, 30)
+    title.Text = "🏀 Arcade Basketball"
+    title.BackgroundTransparency = 1
+    title.TextColor3 = Color3.new(1, 1, 1)
+    title.Font = Enum.Font.SourceSansBold
+    title.TextSize = 18
 
--- Glide Key: G UIS.InputBegan:Connect(function(input, gpe) if gpe then return end if input.KeyCode == Enum.KeyCode.G then if root then root.Velocity = root.CFrame.LookVector * glideSpeed + Vector3.new(0, 20, 0) end end end)
+    local toggle = Instance.new("TextButton", frame)
+    toggle.Size = UDim2.new(0.9, 0, 0, 35)
+    toggle.Position = UDim2.new(0.05, 0, 0, 40)
+    toggle.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
+    toggle.TextColor3 = Color3.new(1,1,1)
+    toggle.Font = Enum.Font.SourceSansBold
+    toggle.TextSize = 16
+    toggle.Text = "Enable Auto Green"
 
--- Hook for Auto Green local bb bb = hookmetamethod(game, "__namecall", newcclosure(function(self, ...) local m = getnamecallmethod() local args = {...} if not checkcaller() and m == 'FireServer' and tostring(self) == 'Shoot' then if autoGreen and args[1] == false then args[2] = -0.98 end end return bb(self, unpack(args)) end))
+    toggle.MouseButton1Click:Connect(function()
+        autoGreen = not autoGreen
+        toggle.Text = autoGreen and "✅ Auto Green ON" or "❌ Auto Green OFF"
+        toggle.BackgroundColor3 = autoGreen and Color3.fromRGB(20,200,20) or Color3.fromRGB(150,50,50)
+    end)
 
-Use this but switch the gui with the first thing I sent
+    local speedLabel = Instance.new("TextLabel", frame)
+    speedLabel.Position = UDim2.new(0.05, 0, 0, 90)
+    speedLabel.Size = UDim2.new(0.9, 0, 0, 20)
+    speedLabel.BackgroundTransparency = 1
+    speedLabel.Text = "WalkSpeed: " .. ws
+    speedLabel.TextColor3 = Color3.new(1,1,1)
+    speedLabel.Font = Enum.Font.SourceSans
+    speedLabel.TextSize = 14
 
+    local speedBox = Instance.new("TextBox", frame)
+    speedBox.Size = UDim2.new(0.9, 0, 0, 30)
+    speedBox.Position = UDim2.new(0.05, 0, 0, 115)
+    speedBox.Text = tostring(ws)
+    speedBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    speedBox.TextColor3 = Color3.new(1,1,1)
+    speedBox.Font = Enum.Font.SourceSansBold
+    speedBox.TextSize = 16
+    speedBox.ClearTextOnFocus = false
+
+    speedBox.FocusLost:Connect(function()
+        local val = tonumber(speedBox.Text)
+        if val then
+            ws = math.clamp(val, 5, 100)
+            speedLabel.Text = "WalkSpeed: " .. ws
+        end
+    end)
+
+    -- GLIDE (G key)
+    UIS.InputBegan:Connect(function(i, g)
+        if g then return end
+        if i.KeyCode == Enum.KeyCode.G then
+            local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+            if root then
+                root.Velocity = root.CFrame.LookVector * 75 + Vector3.new(0,20,0)
+            end
+        end
+    end)
+
+    -- CONSTANT SPEED
+    RS.Heartbeat:Connect(function()
+        if plr.Character and plr.Character:FindFirstChild("Humanoid") then
+            plr.Character.Humanoid.WalkSpeed = ws
+        end
+    end)
+
+    -- HOOK AUTO GREEN
+    local bb
+    bb = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+        local m = getnamecallmethod()
+        local args = {...}
+        if not checkcaller() and m == 'FireServer' and tostring(self) == 'Shoot' then
+            if autoGreen and args[1] == false then
+                args[2] = -0.98
+            end
+        end
+        return bb(self, unpack(args))
+    end))
+end)
