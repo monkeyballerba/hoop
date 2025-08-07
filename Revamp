@@ -1,47 +1,114 @@
--- Wait for Octohook to load
-repeat task.wait() until getgenv().library
-local library = getgenv().library
-
--- Create main tab
-local mainTab = library:AddTab("🏀 Arcade Basketball")
-
--- Vars
+-- Services
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
+local RS = game:GetService("RunService")
 
+-- Player Info
 local player = Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
 local hum = char:WaitForChild("Humanoid")
 local root = char:WaitForChild("HumanoidRootPart")
 
+-- Variables
 local autoGreen = false
 local glideSpeed = 50
 
--- Auto Green Toggle
-mainTab:AddToggle("Auto Green", {
-    flag = "autoGreenToggle",
-    default = false,
-    callback = function(state)
-        autoGreen = state
+-- GUI Setup
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "VelocityUI"
+gui.ResetOnSpawn = false
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 400, 0, 300)
+mainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
+mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+mainFrame.BorderColor3 = Color3.fromRGB(60, 60, 60)
+mainFrame.BorderSizePixel = 2
+mainFrame.Parent = gui
+mainFrame.Active = true
+mainFrame.Draggable = true
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Text = "velocity"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 20
+title.TextColor3 = Color3.new(1,1,1)
+title.BackgroundTransparency = 1
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Parent = mainFrame
+
+-- SECTION: Shooting
+local shootingLabel = Instance.new("TextLabel")
+shootingLabel.Text = "Shooting"
+shootingLabel.Font = Enum.Font.GothamBold
+shootingLabel.TextSize = 16
+shootingLabel.TextColor3 = Color3.fromRGB(200,200,200)
+shootingLabel.BackgroundTransparency = 1
+shootingLabel.Position = UDim2.new(0.05, 0, 0.12, 0)
+shootingLabel.Size = UDim2.new(0.4, 0, 0, 20)
+shootingLabel.Parent = mainFrame
+
+local autoGreenToggle = Instance.new("TextButton")
+autoGreenToggle.Text = "☐ Auto Green"
+autoGreenToggle.Font = Enum.Font.Gotham
+autoGreenToggle.TextSize = 14
+autoGreenToggle.TextColor3 = Color3.fromRGB(255,255,255)
+autoGreenToggle.BackgroundColor3 = Color3.fromRGB(30,30,30)
+autoGreenToggle.BorderColor3 = Color3.fromRGB(60,60,60)
+autoGreenToggle.Size = UDim2.new(0.4, 0, 0, 25)
+autoGreenToggle.Position = UDim2.new(0.05, 0, 0.18, 0)
+autoGreenToggle.Parent = mainFrame
+
+autoGreenToggle.MouseButton1Click:Connect(function()
+    autoGreen = not autoGreen
+    autoGreenToggle.Text = autoGreen and "☑ Auto Green" or "☐ Auto Green"
+end)
+
+-- SECTION: Physics - Glide Speed
+local physicsLabel = Instance.new("TextLabel")
+physicsLabel.Text = "Physics"
+physicsLabel.Font = Enum.Font.GothamBold
+physicsLabel.TextSize = 16
+physicsLabel.TextColor3 = Color3.fromRGB(200,200,200)
+physicsLabel.BackgroundTransparency = 1
+physicsLabel.Position = UDim2.new(0.05, 0, 0.33, 0)
+physicsLabel.Size = UDim2.new(0.4, 0, 0, 20)
+physicsLabel.Parent = mainFrame
+
+local glideSpeedLabel = Instance.new("TextLabel")
+glideSpeedLabel.Text = "Dribble Glide Speed: " .. glideSpeed
+glideSpeedLabel.Font = Enum.Font.Gotham
+glideSpeedLabel.TextSize = 14
+glideSpeedLabel.TextColor3 = Color3.fromRGB(255,255,255)
+glideSpeedLabel.BackgroundTransparency = 1
+glideSpeedLabel.Position = UDim2.new(0.05, 0, 0.4, 0)
+glideSpeedLabel.Size = UDim2.new(0.9, 0, 0, 20)
+glideSpeedLabel.Parent = mainFrame
+
+local glideInput = Instance.new("TextBox")
+glideInput.Text = tostring(glideSpeed)
+glideInput.Font = Enum.Font.Gotham
+glideInput.TextSize = 14
+glideInput.TextColor3 = Color3.fromRGB(255,255,255)
+glideInput.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+glideInput.BorderColor3 = Color3.fromRGB(60,60,60)
+glideInput.Position = UDim2.new(0.05, 0, 0.46, 0)
+glideInput.Size = UDim2.new(0.9, 0, 0, 25)
+glideInput.ClearTextOnFocus = false
+glideInput.Parent = mainFrame
+
+glideInput.FocusLost:Connect(function()
+    local new = tonumber(glideInput.Text)
+    if new then
+        glideSpeed = math.clamp(new, 10, 150)
+        glideSpeedLabel.Text = "Dribble Glide Speed: " .. glideSpeed
+    else
+        glideInput.Text = tostring(glideSpeed)
     end
-})
+end)
 
--- Glide Speed Slider
-mainTab:AddSlider("Glide Speed", {
-    min = 10,
-    max = 150,
-    default = 50,
-    textpos = 1,
-    flag = "glideSpeedSlider",
-    callback = function(val)
-        glideSpeed = val
-    end
-})
-
--- Instructions Label
-mainTab:AddLabel("Press [G] to Glide Forward")
-
--- Glide key
+-- Glide on G Key
 UIS.InputBegan:Connect(function(input, gpe)
     if gpe then return end
     if input.KeyCode == Enum.KeyCode.G then
@@ -51,17 +118,17 @@ UIS.InputBegan:Connect(function(input, gpe)
     end
 end)
 
--- Hook for Auto Green (FireServer)
-local old
-old = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+-- Auto Green Hook
+local bb
+bb = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
     local method = getnamecallmethod()
-    local args = { ... }
+    local args = {...}
 
-    if not checkcaller() and method == "FireServer" and tostring(self) == "Shoot" then
+    if not checkcaller() and method == 'FireServer' and tostring(self) == 'Shoot' then
         if autoGreen and args[1] == false then
             args[2] = -0.98
         end
     end
 
-    return old(self, unpack(args))
+    return bb(self, unpack(args))
 end))
