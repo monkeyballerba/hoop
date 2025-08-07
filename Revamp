@@ -1,131 +1,28 @@
--- ✅ After Library + Utility are loaded...
+-- Modern UI Inspired GUI (Dribble Glide + Slider + Auto Green Toggle) -- Works on KRNL
 
-local Window = Library:CreateWindow({
-    Title = "velocity",
-    Size = UDim2.new(0, 500, 0, 400),
-    Theme = Library.Theme,
-    Center = true,
-    Draggable = true
-})
+local Players = game:GetService("Players") local UIS = game:GetService("UserInputService") local RS = game:GetService("RunService")
 
-local MainTab = Window:CreateTab({ Name = "Main UI Settings" })
+local player = Players.LocalPlayer local char = player.Character or player.CharacterAdded:Wait() local hum = char:WaitForChild("Humanoid") local root = char:WaitForChild("HumanoidRootPart")
 
--- 🏀 Shooting Section
-local ShootingSection = MainTab:CreateSection({ Name = "Shooting" })
-ShootingSection:AddToggle({
-    Text = "Auto Green",
-    Flag = "AutoGreenEnabled",
-    Default = false,
-    Callback = function(bool)
-        getgenv().AutoGreen = bool
-    end
-})
+local autoGreen = false local glideSpeed = 50
 
--- 🧪 Physics Section
-local PhysicsSection = MainTab:CreateSection({ Name = "Physics" })
+-- GUI local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui")) local container = Instance.new("Frame", gui) container.Size = UDim2.new(0, 300, 0, 230) container.Position = UDim2.new(0.5, -150, 0.5, -115) container.BackgroundColor3 = Color3.fromRGB(20, 20, 20) container.BorderSizePixel = 0 container.BackgroundTransparency = 0.1 container.Name = "ArcadeUI" container.Active = true container.Draggable = true
 
-PhysicsSection:AddSlider({
-    Text = "Dribble Glide Speed",
-    Flag = "GlideSpeed",
-    Min = 10,
-    Max = 150,
-    Default = 50,
-    Float = 1,
-    Callback = function(val)
-        getgenv().GlideSpeed = val
-    end
-})
+local title = Instance.new("TextLabel", container) title.Size = UDim2.new(1, 0, 0, 35) title.Text = "🏀 Arcade Basketball" title.BackgroundTransparency = 1 title.TextColor3 = Color3.new(1, 1, 1) title.Font = Enum.Font.GothamBold title.TextSize = 20
 
-PhysicsSection:AddSlider({
-    Text = "Ball Magnet Distance",
-    Flag = "MagnetDistance",
-    Min = 0,
-    Max = 50,
-    Default = 0,
-    Float = 1,
-    Callback = function(val)
-        getgenv().MagnetDistance = val
-    end
-})
+-- Auto Green Switch local toggle = Instance.new("TextButton", container) toggle.Position = UDim2.new(0.05, 0, 0, 45) toggle.Size = UDim2.new(0.9, 0, 0, 35) toggle.Text = "Enable Auto Green" toggle.BackgroundColor3 = Color3.fromRGB(30, 30, 30) toggle.TextColor3 = Color3.new(1, 1, 1) toggle.Font = Enum.Font.Gotham toggle.TextSize = 16
 
--- 🎮 Game Section
-local GameSection = MainTab:CreateSection({ Name = "Game" })
-GameSection:AddToggle({
-    Text = "No Out of Bounds",
-    Flag = "NoOutOfBounds",
-    Default = false,
-    Callback = function(bool)
-        getgenv().NoOutOfBounds = bool
-    end
-})
+toggle.MouseButton1Click:Connect(function() autoGreen = not autoGreen toggle.Text = autoGreen and "✅ Auto Green ON" or "❌ Auto Green OFF" toggle.BackgroundColor3 = autoGreen and Color3.fromRGB(20,150,20) or Color3.fromRGB(50,30,30) end)
 
--- 🏃 Stamina Section
-local StaminaSection = MainTab:CreateSection({ Name = "Stamina" })
-StaminaSection:AddToggle({
-    Text = "Auto Sprint",
-    Flag = "AutoSprint",
-    Default = false
-})
+-- Dribble Glide Label local glideLabel = Instance.new("TextLabel", container) glideLabel.Position = UDim2.new(0.05, 0, 0, 90) glideLabel.Size = UDim2.new(0.9, 0, 0, 20) glideLabel.BackgroundTransparency = 1 glideLabel.Text = "Dribble Glide Speed: " .. glideSpeed glideLabel.TextColor3 = Color3.new(1, 1, 1) glideLabel.Font = Enum.Font.Gotham glideLabel.TextSize = 14
 
-StaminaSection:AddToggle({
-    Text = "Inf-Stamina",
-    Flag = "InfiniteStamina",
-    Default = false
-})
+-- Glide Slider (TextBox) local glideSlider = Instance.new("TextBox", container) glideSlider.Position = UDim2.new(0.05, 0, 0, 115) glideSlider.Size = UDim2.new(0.9, 0, 0, 30) glideSlider.BackgroundColor3 = Color3.fromRGB(40, 40, 40) glideSlider.Text = tostring(glideSpeed) glideSlider.TextColor3 = Color3.new(1, 1, 1) glideSlider.Font = Enum.Font.GothamSemibold glideSlider.TextSize = 16 glideSlider.ClearTextOnFocus = false
 
--- 🌐 Global Vars
-getgenv().AutoGreen = false
-getgenv().GlideSpeed = 50
-getgenv().MagnetDistance = 0
-getgenv().NoOutOfBounds = false
+glideSlider.FocusLost:Connect(function() local new = tonumber(glideSlider.Text) if new then glideSpeed = math.clamp(new, 10, 150) glideLabel.Text = "Dribble Glide Speed: " .. glideSpeed end end)
 
--- 🪂 Glide key = G
-UserInput.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
-    if input.KeyCode == Enum.KeyCode.G then
-        local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if root then
-            root.Velocity = root.CFrame.LookVector * getgenv().GlideSpeed + Vector3.new(0, 20, 0)
-        end
-    end
-end)
+-- Glide Key: G UIS.InputBegan:Connect(function(input, gpe) if gpe then return end if input.KeyCode == Enum.KeyCode.G then if root then root.Velocity = root.CFrame.LookVector * glideSpeed + Vector3.new(0, 20, 0) end end end)
 
--- 🎯 Auto Green Metamethod Hook
-local hook
-hook = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
-    local args = { ... }
-    local method = getnamecallmethod()
+-- Hook for Auto Green local bb bb = hookmetamethod(game, "__namecall", newcclosure(function(self, ...) local m = getnamecallmethod() local args = {...} if not checkcaller() and m == 'FireServer' and tostring(self) == 'Shoot' then if autoGreen and args[1] == false then args[2] = -0.98 end end return bb(self, unpack(args)) end))
 
-    if not checkcaller() and method == "FireServer" and tostring(self) == "Shoot" then
-        if getgenv().AutoGreen and args[1] == false then
-            args[2] = -0.98
-        end
-    end
+Use this but switch the gui with the first thing I sent
 
-    return hook(self, unpack(args))
-end))
-
--- 🧲 Ball Magnet Logic (runs every frame)
-RunService.RenderStepped:Connect(function()
-    if getgenv().MagnetDistance > 0 then
-        local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if root then
-            for _, obj in pairs(workspace:GetDescendants()) do
-                if obj:IsA("BasePart") and obj.Name:lower():find("ball") then
-                    local dist = (obj.Position - root.Position).Magnitude
-                    if dist <= getgenv().MagnetDistance then
-                        obj.Velocity = (root.Position - obj.Position).Unit * 100
-                    end
-                end
-            end
-        end
-    end
-end)
-
--- 🚫 No Out of Bounds Logic (if needed)
-workspace.ChildAdded:Connect(function(child)
-    if getgenv().NoOutOfBounds and child.Name:lower():find("outofbounds") then
-        wait(0.1)
-        child:Destroy()
-    end
-end)
