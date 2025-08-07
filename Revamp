@@ -1,26 +1,191 @@
--- Modern UI Inspired GUI (Dribble Glide + Slider + Auto Green Toggle) -- Works on KRNL
+--// Services
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
 
-local Players = game:GetService("Players") local UIS = game:GetService("UserInputService") local RS = game:GetService("RunService")
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local root = char:WaitForChild("HumanoidRootPart")
 
-local player = Players.LocalPlayer local char = player.Character or player.CharacterAdded:Wait() local hum = char:WaitForChild("Humanoid") local root = char:WaitForChild("HumanoidRootPart")
+--// State
+local autoGreen = false
+local glideSpeed = 50
 
-local autoGreen = false local glideSpeed = 50
+--// Assume 'library' is the Octohook Informant UI lib loaded here and ready
 
--- GUI local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui")) local container = Instance.new("Frame", gui) container.Size = UDim2.new(0, 300, 0, 230) container.Position = UDim2.new(0.5, -150, 0.5, -115) container.BackgroundColor3 = Color3.fromRGB(20, 20, 20) container.BorderSizePixel = 0 container.BackgroundTransparency = 0.1 container.Name = "ArcadeUI" container.Active = true container.Draggable = true
+-- Utility to create a basic toggle button
+local function CreateToggle(parent, pos, text, default, callback)
+    local btn = library.utility:Draw('Square', {
+        Position = pos,
+        Size = UDim2.new(0, 280, 0, 30),
+        Visible = true,
+        ThemeColor = "Option Background"
+    })
+    
+    local label = library.utility:Draw('Text', {
+        Position = UDim2.new(0, 10, 0, 5),
+        Size = UDim2.new(1, -10, 1, 0),
+        Text = text,
+        Visible = true,
+        ThemeColor = "Option Text 1",
+        Font = 2,
+        TextSize = 18,
+        Class = "Text"
+    })
+    label.Parent = btn
+    btn.Children = {label}
+    
+    -- Background color changes with toggle state
+    local toggled = default
+    
+    local function Update()
+        if toggled then
+            btn.Object.Color = library.theme["Accent"] or Color3.fromRGB(103,89,179)
+            label.Object.Text = "✅ " .. text .. " ON"
+        else
+            btn.Object.Color = library.theme["Option Background"] or Color3.fromRGB(24,25,37)
+            label.Object.Text = "❌ " .. text .. " OFF"
+        end
+    end
+    
+    Update()
+    
+    btn.MouseButton1Down:Connect(function()
+        toggled = not toggled
+        Update()
+        callback(toggled)
+    end)
+    
+    return btn
+end
 
-local title = Instance.new("TextLabel", container) title.Size = UDim2.new(1, 0, 0, 35) title.Text = "🏀 Arcade Basketball" title.BackgroundTransparency = 1 title.TextColor3 = Color3.new(1, 1, 1) title.Font = Enum.Font.GothamBold title.TextSize = 20
+-- Utility to create a slider (click and drag)
+local function CreateSlider(parent, pos, min, max, default, callback)
+    local sliderFrame = library.utility:Draw('Square', {
+        Position = pos,
+        Size = UDim2.new(0, 280, 0, 40),
+        Visible = true,
+        ThemeColor = "Option Background"
+    })
+    
+    local label = library.utility:Draw('Text', {
+        Position = UDim2.new(0, 10, 0, 5),
+        Size = UDim2.new(1, -20, 0, 15),
+        Text = "Dribble Glide Speed: " .. default,
+        Visible = true,
+        ThemeColor = "Option Text 1",
+        Font = 2,
+        TextSize = 16,
+        Class = "Text"
+    })
+    label.Parent = sliderFrame
+    sliderFrame.Children = {label}
+    
+    local barBack = library.utility:Draw('Square', {
+        Position = UDim2.new(0, 10, 0, 25),
+        Size = UDim2.new(1, -20, 0, 8),
+        Visible = true,
+        ThemeColor = "Border 1"
+    })
+    barBack.Parent = sliderFrame
+    table.insert(sliderFrame.Children, barBack)
+    
+    local barFill = library.utility:Draw('Square', {
+        Position = UDim2.new(0, 10, 0, 25),
+        Size = UDim2.new((default - min) / (max - min), 0, 0, 8),
+        Visible = true,
+        ThemeColor = "Accent"
+    })
+    barFill.Parent = sliderFrame
+    table.insert(sliderFrame.Children, barFill)
+    
+    local dragging = false
+    
+    local function UpdateSlider(inputPosX)
+        local relativeX = math.clamp(inputPosX - sliderFrame.Object.Position.X, 0, barBack.Object.Size.X)
+        local percent = relativeX / barBack.Object.Size.X
+        local val = math.floor(min + percent * (max - min))
+        barFill.Object.Size = UDim2.new(percent, 0, 0, 8)
+        label.Object.Text = "Dribble Glide Speed: " .. val
+        callback(val)
+    end
+    
+    sliderFrame.MouseButton1Down:Connect(function(inputPos)
+        dragging = true
+        UpdateSlider(inputPos.X)
+    end)
+    
+    UIS.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            UpdateSlider(input.Position.X)
+        end
+    end)
+    
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    return sliderFrame
+end
 
--- Auto Green Switch local toggle = Instance.new("TextButton", container) toggle.Position = UDim2.new(0.05, 0, 0, 45) toggle.Size = UDim2.new(0.9, 0, 0, 35) toggle.Text = "Enable Auto Green" toggle.BackgroundColor3 = Color3.fromRGB(30, 30, 30) toggle.TextColor3 = Color3.new(1, 1, 1) toggle.Font = Enum.Font.Gotham toggle.TextSize = 16
+-- Create main window
+local windowPos = UDim2.new(0.5, -150, 0.5, -115)
+local windowSize = UDim2.new(0, 300, 0, 230)
 
-toggle.MouseButton1Click:Connect(function() autoGreen = not autoGreen toggle.Text = autoGreen and "✅ Auto Green ON" or "❌ Auto Green OFF" toggle.BackgroundColor3 = autoGreen and Color3.fromRGB(20,150,20) or Color3.fromRGB(50,30,30) end)
+local windowFrame = library.utility:Draw('Square', {
+    Position = windowPos,
+    Size = windowSize,
+    Visible = true,
+    ThemeColor = "Background",
+    Class = "Window"
+})
 
--- Dribble Glide Label local glideLabel = Instance.new("TextLabel", container) glideLabel.Position = UDim2.new(0.05, 0, 0, 90) glideLabel.Size = UDim2.new(0.9, 0, 0, 20) glideLabel.BackgroundTransparency = 1 glideLabel.Text = "Dribble Glide Speed: " .. glideSpeed glideLabel.TextColor3 = Color3.new(1, 1, 1) glideLabel.Font = Enum.Font.Gotham glideLabel.TextSize = 14
+-- Title
+local title = library.utility:Draw('Text', {
+    Position = UDim2.new(0, 0, 0, 5),
+    Size = UDim2.new(1, 0, 0, 30),
+    Text = "🏀 Arcade Basketball",
+    Visible = true,
+    ThemeColor = "Primary Text",
+    Font = 2,
+    TextSize = 22,
+    Class = "Text"
+})
+title.Parent = windowFrame
+table.insert(windowFrame.Children, title)
 
--- Glide Slider (TextBox) local glideSlider = Instance.new("TextBox", container) glideSlider.Position = UDim2.new(0.05, 0, 0, 115) glideSlider.Size = UDim2.new(0.9, 0, 0, 30) glideSlider.BackgroundColor3 = Color3.fromRGB(40, 40, 40) glideSlider.Text = tostring(glideSpeed) glideSlider.TextColor3 = Color3.new(1, 1, 1) glideSlider.Font = Enum.Font.GothamSemibold glideSlider.TextSize = 16 glideSlider.ClearTextOnFocus = false
+-- Auto Green Toggle
+local autoGreenToggle = CreateToggle(windowFrame, UDim2.new(0, 10, 0, 40), "Auto Green", autoGreen, function(val)
+    autoGreen = val
+end)
+autoGreenToggle.Parent = windowFrame
+table.insert(windowFrame.Children, autoGreenToggle)
 
-glideSlider.FocusLost:Connect(function() local new = tonumber(glideSlider.Text) if new then glideSpeed = math.clamp(new, 10, 150) glideLabel.Text = "Dribble Glide Speed: " .. glideSpeed end end)
+-- Glide Speed Slider
+local glideSpeedSlider = CreateSlider(windowFrame, UDim2.new(0, 10, 0, 90), 10, 150, glideSpeed, function(val)
+    glideSpeed = val
+end)
+glideSpeedSlider.Parent = windowFrame
+table.insert(windowFrame.Children, glideSpeedSlider)
 
--- Glide Key: G UIS.InputBegan:Connect(function(input, gpe) if gpe then return end if input.KeyCode == Enum.KeyCode.G then if root then root.Velocity = root.CFrame.LookVector * glideSpeed + Vector3.new(0, 20, 0) end end end)
+--// Glide key binding
+UIS.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.G and root then
+        root.Velocity = root.CFrame.LookVector * glideSpeed + Vector3.new(0, 20, 0)
+    end
+end)
 
--- Hook for Auto Green local bb bb = hookmetamethod(game, "__namecall", newcclosure(function(self, ...) local m = getnamecallmethod() local args = {...} if not checkcaller() and m == 'FireServer' and tostring(self) == 'Shoot' then if autoGreen and args[1] == false then args[2] = -0.98 end end return bb(self, unpack(args)) end))
-
+--// Hook for Auto Green
+local oldNamecall
+oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+    if not checkcaller() and method == 'FireServer' and tostring(self) == 'Shoot' then
+        if autoGreen and args[1] == false then
+            args[2] = -0.98
+        end
+    end
+    return oldNamecall(self, unpack(args))
+end))
