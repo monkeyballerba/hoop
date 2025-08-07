@@ -1,8 +1,11 @@
---// GUI + Arcade Basketball Auto Score
+--// GUI + Arcade Basketball Auto Score (RemoteEvent version)
 
 -- CONFIGURATION
-local ballName = "Basketball" -- Change to match the exact ball name
-local hoopName = "Hoop"       -- Change to match the hoop part name
+local remoteEventName = "ShootEvent"  -- Change this to your actual RemoteEvent name
+local remoteEventParent = game:GetService("ReplicatedStorage") -- Usually ReplicatedStorage
+
+-- Example arguments to fire the RemoteEvent; change as needed!
+local shootArgs = {"Green", Vector3.new(0, 50, 0)}  
 
 -- GUI CREATION
 local ScreenGui = Instance.new("ScreenGui")
@@ -39,16 +42,14 @@ Button.Parent = Frame
 
 -- BUTTON FUNCTION
 Button.MouseButton1Click:Connect(function()
-    local ball = workspace:FindFirstChild(ballName)
-    local hoop = workspace:FindFirstChild(hoopName)
-
-    if ball and hoop then
-        ball.CFrame = hoop.CFrame + Vector3.new(0, 1, 0)
-        Button.Text = "✅ Scored!"
+    local remote = remoteEventParent:FindFirstChild(remoteEventName)
+    if remote then
+        remote:FireServer(unpack(shootArgs))
+        Button.Text = "✅ Greened!"
         wait(0.5)
         Button.Text = "🧠 Auto Score"
     else
-        Button.Text = "❌ Not Found"
+        Button.Text = "❌ Remote Not Found"
         wait(0.5)
         Button.Text = "🧠 Auto Score"
     end
