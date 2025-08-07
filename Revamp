@@ -1,15 +1,17 @@
--- GUI + Auto Green + Speed + Glide
+-- ⚙️ Settings
 local autoGreen = false
 local ws = 16
 
+-- 🧍 Player Setup
 local plr = game.Players.LocalPlayer
 local char = plr.Character or plr.CharacterAdded:Wait()
-local hum = char:WaitForChild("Humanoid")
 local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
--- Gui Setup
+-- 🖼️ GUI Setup
 local gui = Instance.new("ScreenGui", plr:WaitForChild("PlayerGui"))
 gui.Name = "ArcadeBBGui"
+gui.ResetOnSpawn = false
 
 local frame = Instance.new("Frame", gui)
 frame.Size = UDim2.new(0, 250, 0, 180)
@@ -53,7 +55,7 @@ speedLabel.TextSize = 14
 local speedBox = Instance.new("TextBox", frame)
 speedBox.Size = UDim2.new(0.9, 0, 0, 30)
 speedBox.Position = UDim2.new(0.05, 0, 0, 115)
-speedBox.Text = "16"
+speedBox.Text = tostring(ws)
 speedBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 speedBox.TextColor3 = Color3.new(1,1,1)
 speedBox.Font = Enum.Font.SourceSansBold
@@ -68,31 +70,42 @@ speedBox.FocusLost:Connect(function()
     end
 end)
 
-game:GetService("RunService").Heartbeat:Connect(function()
-    if plr.Character and plr.Character:FindFirstChild("Humanoid") then
-        plr.Character.Humanoid.WalkSpeed = ws
+RunService.Heartbeat:Connect(function()
+    local human = plr.Character and plr.Character:FindFirstChild("Humanoid")
+    if human then
+        human.WalkSpeed = ws
     end
 end)
 
-UIS.InputBegan:Connect(function(i,g)
-    if g then return end
+-- Glide/dash on G key
+UIS.InputBegan:Connect(function(i, gameProcessed)
+    if gameProcessed then return end
     if i.KeyCode == Enum.KeyCode.G then
-        local root = plr.Character:FindFirstChild("HumanoidRootPart")
+        local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
         if root then
-            root.Velocity = root.CFrame.LookVector * 75 + Vector3.new(0,20,0)
+            root.Velocity = root.CFrame.LookVector * 75 + Vector3.new(0, 20, 0)
         end
     end
 end)
 
--- Auto Green Hook
-local bb
-bb = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
-    local m = getnamecallmethod()
+-- 🟢 Auto Green Hook
+local mt = getrawmetatable(game)
+setreadonly(mt, false)
+
+local oldNamecall = mt.__namecall
+
+mt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
     local args = {...}
-    if not checkcaller() and m == 'FireServer' and tostring(self) == 'Shoot' then
-        if autoGreen and args[1] == false then
-            args[2] = -0.98
+
+    -- Detect Shoot Remote
+    if not checkcaller() and method == "FireServer" and tostring(self) == "Shoot" then
+        if autoGreen then
+            -- Force perfect release value
+            args[2] = -0.98 -- Adjust if needed depending on game
         end
+        return oldNamecall(self, unpack(args))
     end
-    return bb(self, unpack(args))
-end))
+
+    return oldNamecall(self, ...)
+end)
