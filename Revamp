@@ -1,112 +1,57 @@
--- Services
-local Players = game:GetService("Players")
-local UIS = game:GetService("UserInputService")
+-- Assuming 'library' is your loaded UI lib
 
-local player = Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local root = char:WaitForChild("HumanoidRootPart")
+-- Create window
+local window = library:CreateWindow({
+    Title = "🏀 Arcade Basketball",
+    Size = UDim2.new(0, 300, 0, 230),
+    Theme = "Informant_V1" -- or any of the themes you showed
+})
 
--- State
-local autoGreen = false
-local glideSpeed = 50
+-- Add toggle (pseudo code - adjust if your library function names differ)
+local autoGreenToggle = window:AddToggle({
+    Text = "Enable Auto Green",
+    Default = false,
+    Callback = function(value)
+        autoGreen = value
+        print("Auto Green toggled:", value)
+    end
+})
 
--- The loaded library (your Octohook Informant UI lib)
-local library = getgenv().library
-if not library then
-    error("Octohook Informant UI library is not loaded!")
-end
+-- Add slider (pseudo code)
+local glideSlider = window:AddSlider({
+    Text = "Dribble Glide Speed",
+    Default = glideSpeed,
+    Min = 10,
+    Max = 150,
+    Increment = 1,
+    Callback = function(value)
+        glideSpeed = value
+        print("Glide speed changed:", glideSpeed)
+    end
+})
 
--- Helper to create a toggle button with Octohook lib drawing
-local function CreateToggle(parent, pos, text, default, callback)
-    local btn = library.utility:Draw("Square", {
-        Position = pos,
-        Size = UDim2.new(0, 280, 0, 30),
-        Visible = true,
-        ThemeColor = "Option Background"
-    })
-    btn.Children = {}
-
-    local label = library.utility:Draw("Text", {
-        Position = UDim2.new(0, 10, 0, 5),
-        Size = UDim2.new(1, -10, 1, 0),
-        Text = text,
-        Visible = true,
-        ThemeColor = "Option Text 1",
-        Font = Enum.Font.Gotham,
-        TextSize = 18
-    })
-    label.Parent = btn
-    table.insert(btn.Children, label)
-
-    local toggled = default
-
-    local function Update()
-        if toggled then
-            btn.Object.Color = library.theme["Accent"] or Color3.fromRGB(103, 89, 179)
-            label.Object.Text = "✅ " .. text .. " ON"
-        else
-            btn.Object.Color = library.theme["Option Background"] or Color3.fromRGB(24, 25, 37)
-            label.Object.Text = "❌ " .. text .. " OFF"
+-- Bind glide key
+UIS.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.G then
+        if root then
+            root.Velocity = root.CFrame.LookVector * glideSpeed + Vector3.new(0, 20, 0)
         end
     end
+end)
 
-    Update()
-
-    -- Connect click event using the library signal
-    btn.MouseButton1Down:Connect(function()
-        toggled = not toggled
-        Update()
-        callback(toggled)
-    end)
-
-    btn.Parent = parent
-    table.insert(parent.Children, btn)
-
-    return btn
-end
-
--- Helper to create a slider
-local function CreateSlider(parent, pos, min, max, default, callback)
-    local sliderFrame = library.utility:Draw("Square", {
-        Position = pos,
-        Size = UDim2.new(0, 280, 0, 40),
-        Visible = true,
-        ThemeColor = "Option Background"
-    })
-    sliderFrame.Children = {}
-
-    local label = library.utility:Draw("Text", {
-        Position = UDim2.new(0, 10, 0, 5),
-        Size = UDim2.new(1, -20, 0, 15),
-        Text = "Dribble Glide Speed: " .. default,
-        Visible = true,
-        ThemeColor = "Option Text 1",
-        Font = Enum.Font.Gotham,
-        TextSize = 16
-    })
-    label.Parent = sliderFrame
-    table.insert(sliderFrame.Children, label)
-
-    local barBack = library.utility:Draw("Square", {
-        Position = UDim2.new(0, 10, 0, 25),
-        Size = UDim2.new(1, -20, 0, 8),
-        Visible = true,
-        ThemeColor = "Border 1"
-    })
-    barBack.Parent = sliderFrame
-    table.insert(sliderFrame.Children, barBack)
-
-    local barFill = library.utility:Draw("Square", {
-        Position = UDim2.new(0, 10, 0, 25),
-        Size = UDim2.new((default - min) / (max - min), 0, 0, 8),
-        Visible = true,
-        ThemeColor = "Accent"
-    })
-    barFill.Parent = sliderFrame
-    table.insert(sliderFrame.Children, barFill)
-
-    local dragging = false
-
+-- Hookmetamethod for Auto Green (keep your original code)
+local bb
+bb = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+    if not checkcaller() and method == "FireServer" and tostring(self) == "Shoot" then
+        if autoGreen and args[1] == false then
+            args[2] = -0.98
+        end
+    end
+    return bb(self, unpack(args))
+end))
     local function UpdateSlider(inputX)
         local relativeX = math.clamp(inputX - sliderFrame.Object.Position.X, 0, barBack.Object.Size.X)
         local percent = relativeX / barBack.Object.Size.X
