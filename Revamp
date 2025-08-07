@@ -1,134 +1,131 @@
--- Services
-local Players = game:GetService("Players")
-local UIS = game:GetService("UserInputService")
-local RS = game:GetService("RunService")
+-- ✅ After Library + Utility are loaded...
 
--- Player Info
-local player = Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local hum = char:WaitForChild("Humanoid")
-local root = char:WaitForChild("HumanoidRootPart")
+local Window = Library:CreateWindow({
+    Title = "velocity",
+    Size = UDim2.new(0, 500, 0, 400),
+    Theme = Library.Theme,
+    Center = true,
+    Draggable = true
+})
 
--- Variables
-local autoGreen = false
-local glideSpeed = 50
+local MainTab = Window:CreateTab({ Name = "Main UI Settings" })
 
--- GUI Setup
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "VelocityUI"
-gui.ResetOnSpawn = false
-
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 400, 0, 300)
-mainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
-mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-mainFrame.BorderColor3 = Color3.fromRGB(60, 60, 60)
-mainFrame.BorderSizePixel = 2
-mainFrame.Parent = gui
-mainFrame.Active = true
-mainFrame.Draggable = true
-
--- Title
-local title = Instance.new("TextLabel")
-title.Text = "velocity"
-title.Font = Enum.Font.GothamBold
-title.TextSize = 20
-title.TextColor3 = Color3.new(1,1,1)
-title.BackgroundTransparency = 1
-title.Size = UDim2.new(1, 0, 0, 30)
-title.Parent = mainFrame
-
--- SECTION: Shooting
-local shootingLabel = Instance.new("TextLabel")
-shootingLabel.Text = "Shooting"
-shootingLabel.Font = Enum.Font.GothamBold
-shootingLabel.TextSize = 16
-shootingLabel.TextColor3 = Color3.fromRGB(200,200,200)
-shootingLabel.BackgroundTransparency = 1
-shootingLabel.Position = UDim2.new(0.05, 0, 0.12, 0)
-shootingLabel.Size = UDim2.new(0.4, 0, 0, 20)
-shootingLabel.Parent = mainFrame
-
-local autoGreenToggle = Instance.new("TextButton")
-autoGreenToggle.Text = "☐ Auto Green"
-autoGreenToggle.Font = Enum.Font.Gotham
-autoGreenToggle.TextSize = 14
-autoGreenToggle.TextColor3 = Color3.fromRGB(255,255,255)
-autoGreenToggle.BackgroundColor3 = Color3.fromRGB(30,30,30)
-autoGreenToggle.BorderColor3 = Color3.fromRGB(60,60,60)
-autoGreenToggle.Size = UDim2.new(0.4, 0, 0, 25)
-autoGreenToggle.Position = UDim2.new(0.05, 0, 0.18, 0)
-autoGreenToggle.Parent = mainFrame
-
-autoGreenToggle.MouseButton1Click:Connect(function()
-    autoGreen = not autoGreen
-    autoGreenToggle.Text = autoGreen and "☑ Auto Green" or "☐ Auto Green"
-end)
-
--- SECTION: Physics - Glide Speed
-local physicsLabel = Instance.new("TextLabel")
-physicsLabel.Text = "Physics"
-physicsLabel.Font = Enum.Font.GothamBold
-physicsLabel.TextSize = 16
-physicsLabel.TextColor3 = Color3.fromRGB(200,200,200)
-physicsLabel.BackgroundTransparency = 1
-physicsLabel.Position = UDim2.new(0.05, 0, 0.33, 0)
-physicsLabel.Size = UDim2.new(0.4, 0, 0, 20)
-physicsLabel.Parent = mainFrame
-
-local glideSpeedLabel = Instance.new("TextLabel")
-glideSpeedLabel.Text = "Dribble Glide Speed: " .. glideSpeed
-glideSpeedLabel.Font = Enum.Font.Gotham
-glideSpeedLabel.TextSize = 14
-glideSpeedLabel.TextColor3 = Color3.fromRGB(255,255,255)
-glideSpeedLabel.BackgroundTransparency = 1
-glideSpeedLabel.Position = UDim2.new(0.05, 0, 0.4, 0)
-glideSpeedLabel.Size = UDim2.new(0.9, 0, 0, 20)
-glideSpeedLabel.Parent = mainFrame
-
-local glideInput = Instance.new("TextBox")
-glideInput.Text = tostring(glideSpeed)
-glideInput.Font = Enum.Font.Gotham
-glideInput.TextSize = 14
-glideInput.TextColor3 = Color3.fromRGB(255,255,255)
-glideInput.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-glideInput.BorderColor3 = Color3.fromRGB(60,60,60)
-glideInput.Position = UDim2.new(0.05, 0, 0.46, 0)
-glideInput.Size = UDim2.new(0.9, 0, 0, 25)
-glideInput.ClearTextOnFocus = false
-glideInput.Parent = mainFrame
-
-glideInput.FocusLost:Connect(function()
-    local new = tonumber(glideInput.Text)
-    if new then
-        glideSpeed = math.clamp(new, 10, 150)
-        glideSpeedLabel.Text = "Dribble Glide Speed: " .. glideSpeed
-    else
-        glideInput.Text = tostring(glideSpeed)
+-- 🏀 Shooting Section
+local ShootingSection = MainTab:CreateSection({ Name = "Shooting" })
+ShootingSection:AddToggle({
+    Text = "Auto Green",
+    Flag = "AutoGreenEnabled",
+    Default = false,
+    Callback = function(bool)
+        getgenv().AutoGreen = bool
     end
-end)
+})
 
--- Glide on G Key
-UIS.InputBegan:Connect(function(input, gpe)
+-- 🧪 Physics Section
+local PhysicsSection = MainTab:CreateSection({ Name = "Physics" })
+
+PhysicsSection:AddSlider({
+    Text = "Dribble Glide Speed",
+    Flag = "GlideSpeed",
+    Min = 10,
+    Max = 150,
+    Default = 50,
+    Float = 1,
+    Callback = function(val)
+        getgenv().GlideSpeed = val
+    end
+})
+
+PhysicsSection:AddSlider({
+    Text = "Ball Magnet Distance",
+    Flag = "MagnetDistance",
+    Min = 0,
+    Max = 50,
+    Default = 0,
+    Float = 1,
+    Callback = function(val)
+        getgenv().MagnetDistance = val
+    end
+})
+
+-- 🎮 Game Section
+local GameSection = MainTab:CreateSection({ Name = "Game" })
+GameSection:AddToggle({
+    Text = "No Out of Bounds",
+    Flag = "NoOutOfBounds",
+    Default = false,
+    Callback = function(bool)
+        getgenv().NoOutOfBounds = bool
+    end
+})
+
+-- 🏃 Stamina Section
+local StaminaSection = MainTab:CreateSection({ Name = "Stamina" })
+StaminaSection:AddToggle({
+    Text = "Auto Sprint",
+    Flag = "AutoSprint",
+    Default = false
+})
+
+StaminaSection:AddToggle({
+    Text = "Inf-Stamina",
+    Flag = "InfiniteStamina",
+    Default = false
+})
+
+-- 🌐 Global Vars
+getgenv().AutoGreen = false
+getgenv().GlideSpeed = 50
+getgenv().MagnetDistance = 0
+getgenv().NoOutOfBounds = false
+
+-- 🪂 Glide key = G
+UserInput.InputBegan:Connect(function(input, gpe)
     if gpe then return end
     if input.KeyCode == Enum.KeyCode.G then
+        local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if root then
-            root.Velocity = root.CFrame.LookVector * glideSpeed + Vector3.new(0, 20, 0)
+            root.Velocity = root.CFrame.LookVector * getgenv().GlideSpeed + Vector3.new(0, 20, 0)
         end
     end
 end)
 
--- Auto Green Hook
-local bb
-bb = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+-- 🎯 Auto Green Metamethod Hook
+local hook
+hook = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+    local args = { ... }
     local method = getnamecallmethod()
-    local args = {...}
 
-    if not checkcaller() and method == 'FireServer' and tostring(self) == 'Shoot' then
-        if autoGreen and args[1] == false then
+    if not checkcaller() and method == "FireServer" and tostring(self) == "Shoot" then
+        if getgenv().AutoGreen and args[1] == false then
             args[2] = -0.98
         end
     end
 
-    return bb(self, unpack(args))
+    return hook(self, unpack(args))
 end))
+
+-- 🧲 Ball Magnet Logic (runs every frame)
+RunService.RenderStepped:Connect(function()
+    if getgenv().MagnetDistance > 0 then
+        local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if root then
+            for _, obj in pairs(workspace:GetDescendants()) do
+                if obj:IsA("BasePart") and obj.Name:lower():find("ball") then
+                    local dist = (obj.Position - root.Position).Magnitude
+                    if dist <= getgenv().MagnetDistance then
+                        obj.Velocity = (root.Position - obj.Position).Unit * 100
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- 🚫 No Out of Bounds Logic (if needed)
+workspace.ChildAdded:Connect(function(child)
+    if getgenv().NoOutOfBounds and child.Name:lower():find("outofbounds") then
+        wait(0.1)
+        child:Destroy()
+    end
+end)
