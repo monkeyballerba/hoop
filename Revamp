@@ -1,75 +1,93 @@
+-- ⚠️ Load Rayfield UI Library
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+-- 🪟 Window
+local Window = Rayfield:CreateWindow({
+    Name = "🏀 Arcade BB 🏀",
+    LoadingTitle = "Loading GUI...",
+    LoadingSubtitle = "by Lazy",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "ArcadeBB", -- folder in workspace
+        FileName = "ArcadeBB_Config"
+    },
+    Discord = {
+        Enabled = true,
+        Invite = "ura", -- Your invite code
+        RememberJoins = true
+    },
+    KeySystem = false,
+    ToggleUIKeybind = Enum.KeyCode.K
+})
+
 -- ⚙️ Settings
 local autoGreen = false
+local autoGuard = false
 local ws = 16
-
--- 🧍 Player Setup
 local plr = game.Players.LocalPlayer
-local char = plr.Character or plr.CharacterAdded:Wait()
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local char = plr.Character or plr.CharacterAdded:Wait()
 
--- 🖼️ GUI Setup
-local gui = Instance.new("ScreenGui", plr:WaitForChild("PlayerGui"))
-gui.Name = "ArcadeBBGui"
-gui.ResetOnSpawn = false
+-- 📁 Tab
+local MainTab = Window:CreateTab("Main", 1234567890) -- Replace with any imageId or use Lucide Icon name string
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 250, 0, 180)
-frame.Position = UDim2.new(0, 100, 0, 200)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.Active = true
-frame.Draggable = true
-
-local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1, 0, 0, 30)
-title.Text = "🏀 Arcade BB GUI"
-title.BackgroundTransparency = 1
-title.TextColor3 = Color3.new(1, 1, 1)
-title.Font = Enum.Font.SourceSansBold
-title.TextSize = 18
-
-local toggle = Instance.new("TextButton", frame)
-toggle.Size = UDim2.new(0.9, 0, 0, 35)
-toggle.Position = UDim2.new(0.05, 0, 0, 40)
-toggle.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
-toggle.TextColor3 = Color3.new(1,1,1)
-toggle.Font = Enum.Font.SourceSansBold
-toggle.TextSize = 16
-toggle.Text = "Enable Auto Green"
-
-toggle.MouseButton1Click:Connect(function()
-    autoGreen = not autoGreen
-    toggle.Text = autoGreen and "✅ Auto Green ON" or "❌ Auto Green OFF"
-    toggle.BackgroundColor3 = autoGreen and Color3.fromRGB(20,200,20) or Color3.fromRGB(150,50,50)
-end)
-
-local speedLabel = Instance.new("TextLabel", frame)
-speedLabel.Position = UDim2.new(0.05, 0, 0, 90)
-speedLabel.Size = UDim2.new(0.9, 0, 0, 20)
-speedLabel.BackgroundTransparency = 1
-speedLabel.Text = "WalkSpeed:"
-speedLabel.TextColor3 = Color3.new(1,1,1)
-speedLabel.Font = Enum.Font.SourceSans
-speedLabel.TextSize = 14
-
-local speedBox = Instance.new("TextBox", frame)
-speedBox.Size = UDim2.new(0.9, 0, 0, 30)
-speedBox.Position = UDim2.new(0.05, 0, 0, 115)
-speedBox.Text = tostring(ws)
-speedBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-speedBox.TextColor3 = Color3.new(1,1,1)
-speedBox.Font = Enum.Font.SourceSansBold
-speedBox.TextSize = 16
-speedBox.ClearTextOnFocus = false
-
-speedBox.FocusLost:Connect(function()
-    local val = tonumber(speedBox.Text)
-    if val then
-        ws = math.clamp(val, 5, 100)
-        speedLabel.Text = "WalkSpeed: " .. ws
+-- 🔘 Auto Green Toggle
+MainTab:CreateToggle({
+    Name = "Auto Green",
+    CurrentValue = false,
+    Flag = "AutoGreenToggle",
+    Callback = function(val)
+        autoGreen = val
     end
+})
+
+-- 🧍 WalkSpeed Slider
+MainTab:CreateSlider({
+    Name = "WalkSpeed",
+    Range = {5, 100},
+    Increment = 1,
+    Suffix = "Speed",
+    CurrentValue = ws,
+    Flag = "SpeedSlider",
+    Callback = function(val)
+        ws = val
+    end
+})
+
+-- 🛡️ Auto Guard Toggle
+MainTab:CreateToggle({
+    Name = "Auto Guard",
+    CurrentValue = false,
+    Flag = "AutoGuardToggle",
+    Callback = function(val)
+        autoGuard = val
+    end
+})
+
+-- ✈️ Glide Instruction
+MainTab:CreateParagraph({Title = "Glide Key", Content = "Press [G] to glide forward."})
+
+-- 🟢 Auto Green Hook
+local mt = getrawmetatable(game)
+setreadonly(mt, false)
+local oldNamecall = mt.__namecall
+
+mt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    local args = { ... }
+
+    if not checkcaller() and method == "FireServer" and tostring(self) == "Shoot" then
+        if autoGreen then
+            args[2] = -0.98
+        end
+        return oldNamecall(self, unpack(args))
+    end
+
+    return oldNamecall(self, ...)
 end)
 
+-- 🚶 Apply WalkSpeed continuously
 RunService.Heartbeat:Connect(function()
     local human = plr.Character and plr.Character:FindFirstChild("Humanoid")
     if human then
@@ -77,10 +95,10 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Glide/dash on G key
-UIS.InputBegan:Connect(function(i, gameProcessed)
-    if gameProcessed then return end
-    if i.KeyCode == Enum.KeyCode.G then
+-- 🕊️ Glide on [G]
+UIS.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.G then
         local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
         if root then
             root.Velocity = root.CFrame.LookVector * 75 + Vector3.new(0, 20, 0)
@@ -88,24 +106,39 @@ UIS.InputBegan:Connect(function(i, gameProcessed)
     end
 end)
 
--- 🟢 Auto Green Hook
-local mt = getrawmetatable(game)
-setreadonly(mt, false)
-
-local oldNamecall = mt.__namecall
-
-mt.__namecall = newcclosure(function(self, ...)
-    local method = getnamecallmethod()
-    local args = {...}
-
-    -- Detect Shoot Remote
-    if not checkcaller() and method == "FireServer" and tostring(self) == "Shoot" then
-        if autoGreen then
-            -- Force perfect release value
-            args[2] = -0.98 -- Adjust if needed depending on game
+-- 🛡️ Auto Guard Logic
+local function getBallHandler()
+    local closest, dist = nil, math.huge
+    for _, p in pairs(game.Players:GetPlayers()) do
+        if p ~= plr and p.Team ~= plr.Team and p.Character then
+            local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+            if hrp and p.Character:FindFirstChild("Basketball") then
+                local myHRP = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+                if myHRP then
+                    local d = (myHRP.Position - hrp.Position).Magnitude
+                    if d < dist and d < 50 then
+                        closest = hrp
+                        dist = d
+                    end
+                end
+            end
         end
-        return oldNamecall(self, unpack(args))
     end
+    return closest
+end
 
+-- 🔁 Auto Guard Movement
+RunService.RenderStepped:Connect(function()
+    if autoGuard and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+        local myHRP = plr.Character.HumanoidRootPart
+        local target = getBallHandler()
+
+        if target then
+            local frontPos = target.Position + (target.CFrame.LookVector * -2)
+            local moveDir = (frontPos - myHRP.Position).Unit * ws
+            myHRP.Velocity = Vector3.new(moveDir.X, myHRP.Velocity.Y, moveDir.Z)
+        end
+    end
+end)
     return oldNamecall(self, ...)
 end)
