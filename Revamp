@@ -1,14 +1,14 @@
 -- ⚠️ Load Rayfield UI Library
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- 🪟 Window
+-- 🪟 Create Window
 local Window = Rayfield:CreateWindow({
     Name = "🏀 Arcade BB 🏀",
     LoadingTitle = "Loading GUI...",
     LoadingSubtitle = "by Lazy",
     ConfigurationSaving = {
         Enabled = true,
-        FolderName = "ArcadeBB", -- folder in workspace
+        FolderName = "ArcadeBB", -- Saved to workspace
         FileName = "ArcadeBB_Config"
     },
     Discord = {
@@ -29,8 +29,8 @@ local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local char = plr.Character or plr.CharacterAdded:Wait()
 
--- 📁 Tab
-local MainTab = Window:CreateTab("Main", 1234567890) -- Replace with any imageId or use Lucide Icon name string
+-- 📁 Create Main Tab
+local MainTab = Window:CreateTab("Main", 1234567890) -- Replace with actual assetId or use icon name
 
 -- 🔘 Auto Green Toggle
 MainTab:CreateToggle({
@@ -65,7 +65,7 @@ MainTab:CreateToggle({
     end
 })
 
--- ✈️ Glide Instruction
+-- ✈️ Glide Key Info
 MainTab:CreateParagraph({Title = "Glide Key", Content = "Press [G] to glide forward."})
 
 -- 🟢 Auto Green Hook
@@ -79,7 +79,7 @@ mt.__namecall = newcclosure(function(self, ...)
 
     if not checkcaller() and method == "FireServer" and tostring(self) == "Shoot" then
         if autoGreen then
-            args[2] = -0.98
+            args[2] = -0.98 -- Perfect timing
         end
         return oldNamecall(self, unpack(args))
     end
@@ -87,7 +87,7 @@ mt.__namecall = newcclosure(function(self, ...)
     return oldNamecall(self, ...)
 end)
 
--- 🚶 Apply WalkSpeed continuously
+-- 🚶 Constant WalkSpeed
 RunService.Heartbeat:Connect(function()
     local human = plr.Character and plr.Character:FindFirstChild("Humanoid")
     if human then
@@ -95,7 +95,7 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- 🕊️ Glide on [G]
+-- 🕊️ Glide on [G] Key
 UIS.InputBegan:Connect(function(input, gp)
     if gp then return end
     if input.KeyCode == Enum.KeyCode.G then
@@ -106,7 +106,7 @@ UIS.InputBegan:Connect(function(input, gp)
     end
 end)
 
--- 🛡️ Auto Guard Logic
+-- 🔍 Get Opponent Holding Ball
 local function getBallHandler()
     local closest, dist = nil, math.huge
     for _, p in pairs(game.Players:GetPlayers()) do
@@ -140,5 +140,6 @@ RunService.RenderStepped:Connect(function()
         end
     end
 end)
-    return oldNamecall(self, ...)
-end)
+
+-- ✅ ✅ ✅ Load Rayfield UI Configuration (Required!)
+Rayfield:LoadConfiguration()
