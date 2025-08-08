@@ -58,7 +58,7 @@ MainTab:CreateSlider({
     end
 })
 
--- ✈️ Glide Power Slider
+-- ✈️ Dribble Glide Power Slider
 MainTab:CreateSlider({
     Name = "Dribble Glide Power",
     Range = {10, 200},
@@ -100,14 +100,12 @@ end)
 
 -- 🏀 Dribble Glide Logic
 local lastDribbleTime = 0
-
--- Hook into remote events to detect dribble
 local dribbleRemote = ReplicatedStorage:FindFirstChild("Dribble") or ReplicatedStorage:FindFirstChildWhichIsA("RemoteEvent", true)
 
 if dribbleRemote then
     dribbleRemote.OnClientEvent:Connect(function(...)
         local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-        if root and tick() - lastDribbleTime > 0.3 then -- small cooldown
+        if root and tick() - lastDribbleTime > 0.3 then
             lastDribbleTime = tick()
             local direction = root.CFrame.LookVector
             root.Velocity = Vector3.new(direction.X, 0, direction.Z) * glidePower + Vector3.new(0, 20, 0)
@@ -115,5 +113,5 @@ if dribbleRemote then
     end)
 end
 
--- ✅ Load saved values
+-- 💾 Load Saved Config Values
 Rayfield:LoadConfiguration()
