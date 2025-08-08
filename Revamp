@@ -1,46 +1,196 @@
--- ⚠️ Load Rayfield UI Library local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+-- ⚠️ Load Rayfield UI Library
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- 🪟 Create Window local Window = Rayfield:CreateWindow({ Name = "🏀 Arcade BB 🏀", LoadingTitle = "Loading GUI...", LoadingSubtitle = "by Lazy", ConfigurationSaving = { Enabled = true, FolderName = "ArcadeBB", FileName = "ArcadeBB_Config" }, Discord = { Enabled = true, Invite = "ura", RememberJoins = true }, KeySystem = false, ToggleUIKeybind = Enum.KeyCode.K })
+-- 🪟 Create Window
+local Window = Rayfield:CreateWindow({
+	Name = "🏀 Arcade BB 🏀",
+	LoadingTitle = "Loading GUI...",
+	LoadingSubtitle = "by Lazy",
+	ConfigurationSaving = {
+		Enabled = true,
+		FolderName = "ArcadeBB",
+		FileName = "ArcadeBB_Config"
+	},
+	Discord = {
+		Enabled = true,
+		Invite = "ura",
+		RememberJoins = true
+	},
+	KeySystem = false,
+	ToggleUIKeybind = Enum.KeyCode.K
+})
 
--- ⚙️ Variables local autoGreen = false local walkSpeed = 16 local glidePower = 50 local plr = game.Players.LocalPlayer local RunService = game:GetService("RunService") local ReplicatedStorage = game:GetService("ReplicatedStorage") local UserInputService = game:GetService("UserInputService")
+-- ⚙️ Variables
+local autoGreen = false
+local walkSpeed = 16
+local glidePower = 50
+local jumpPower = 50
+local spinBot = false
 
--- 📁 Main Tab local MainTab = Window:CreateTab("Main", 1234567890)
+local plr = game.Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 
--- 🔘 Auto Green Toggle MainTab:CreateToggle({ Name = "Auto Green", CurrentValue = false, Flag = "AutoGreenToggle", Callback = function(val) autoGreen = val end })
+-- 📁 Tabs
+local MainTab = Window:CreateTab("Main", 1234567890)
+local ExtraTab = Window:CreateTab("Extras", 1234567890)
+local CosmeticTab = Window:CreateTab("Cosmetics", 1234567890)
 
--- 🢍 WalkSpeed Slider MainTab:CreateSlider({ Name = "WalkSpeed", Range = {5, 100}, Increment = 1, Suffix = "Speed", CurrentValue = walkSpeed, Flag = "SpeedSlider", Callback = function(val) walkSpeed = val local human = plr.Character and plr.Character:FindFirstChild("Humanoid") if human then human.WalkSpeed = val end end })
+-- 🔘 Auto Green Toggle
+MainTab:CreateToggle({
+	Name = "Auto Green",
+	CurrentValue = false,
+	Flag = "AutoGreenToggle",
+	Callback = function(val)
+		autoGreen = val
+	end
+})
 
--- ✈️ Dribble Glide Power Slider MainTab:CreateSlider({ Name = "Dribble Glide Power", Range = {10, 200}, Increment = 5, Suffix = "Glide", CurrentValue = glidePower, Flag = "GlideSlider", Callback = function(val) glidePower = val end })
+-- 🧍 WalkSpeed Slider
+MainTab:CreateSlider({
+	Name = "WalkSpeed",
+	Range = {5, 100},
+	Increment = 1,
+	Suffix = "Speed",
+	CurrentValue = walkSpeed,
+	Flag = "SpeedSlider",
+	Callback = function(val)
+		walkSpeed = val
+	end
+})
 
--- 🔵 Auto Green Hook local mt = getrawmetatable(game) setreadonly(mt, false) local oldNamecall = mt.__namecall
+-- 🦘 Jump Power Slider
+MainTab:CreateSlider({
+	Name = "Jump Power",
+	Range = {20, 150},
+	Increment = 5,
+	Suffix = "Power",
+	CurrentValue = jumpPower,
+	Flag = "JumpPowerSlider",
+	Callback = function(val)
+		jumpPower = val
+		local human = plr.Character and plr.Character:FindFirstChild("Humanoid")
+		if human then
+			human.UseJumpPower = true
+			human.JumpPower = val
+		end
+	end
+})
 
-mt.__namecall = newcclosure(function(self, ...) local method = getnamecallmethod() local args = { ... }
+-- ✈️ Glide Power Slider
+MainTab:CreateSlider({
+	Name = "Dribble Glide Power",
+	Range = {10, 200},
+	Increment = 5,
+	Suffix = "Glide",
+	CurrentValue = glidePower,
+	Flag = "GlideSlider",
+	Callback = function(val)
+		glidePower = val
+	end
+})
 
-if not checkcaller() then
-    if method == "FireServer" and tostring(self) == "Shoot" and autoGreen then
-        args[2] = -0.98
-        return oldNamecall(self, unpack(args))
-    end
+-- 🔄 SpinBot Toggle
+ExtraTab:CreateToggle({
+	Name = "SpinBot",
+	CurrentValue = false,
+	Flag = "SpinToggle",
+	Callback = function(val)
+		spinBot = val
+	end
+})
 
-    -- No Cooldown Patch
-    if tostring(self):lower():find("cooldown") then
-        return nil
-    end
-end
+-- 📟 Dribble Cooldown Label (dynamic)
+local cooldownLabel = ExtraTab:CreateParagraph({
+	Title = "Last Dribble:",
+	Content = "Not used yet."
+})
 
-return oldNamecall(self, ...)
+-- 🎨 Cosmetics Section (UI Only)
+CosmeticTab:CreateParagraph({
+	Title = "Coming Soon!",
+	Content = "Unlockable hats, shoes, particles, and more!"
+})
 
+-- 🟢 Auto Green Hook
+local mt = getrawmetatable(game)
+setreadonly(mt, false)
+local oldNamecall = mt.__namecall
+
+mt.__namecall = newcclosure(function(self, ...)
+	local method = getnamecallmethod()
+	local args = { ... }
+
+	if not checkcaller() and method == "FireServer" and tostring(self) == "Shoot" then
+		if autoGreen then
+			args[2] = -0.98
+		end
+		return oldNamecall(self, unpack(args))
+	end
+
+	return oldNamecall(self, ...)
 end)
 
--- 🛎️ Dribble Glide Logic local lastDribbleTime = 0 local glideDuration = 0.5 -- smoother feel local dribbleRemote = ReplicatedStorage:FindFirstChild("Dribble") or ReplicatedStorage:FindFirstChildWhichIsA("RemoteEvent", true)
+-- 🚶 Constant Stat Sync (WalkSpeed, JumpPower, SpinBot)
+RunService.Heartbeat:Connect(function()
+	local human = plr.Character and plr.Character:FindFirstChild("Humanoid")
+	if human then
+		human.WalkSpeed = walkSpeed
+		human.UseJumpPower = true
+		human.JumpPower = jumpPower
+	end
 
-if dribbleRemote then dribbleRemote.OnClientEvent:Connect(function(...) local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") if root and tick() - lastDribbleTime > 0.3 then lastDribbleTime = tick() local direction = root.CFrame.LookVector root.Velocity = Vector3.new(direction.X, 0, direction.Z) * glidePower + Vector3.new(0, 18, 0) end end) end
+	if spinBot and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+		plr.Character.HumanoidRootPart.CFrame *= CFrame.Angles(0, math.rad(5), 0)
+	end
+end)
 
--- 🧳 Anti-AFK pcall(function() local vu = game:GetService("VirtualUser") plr.Idled:Connect(function() vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame) wait(1) vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame) end) end)
+-- 🏀 Dribble Glide Logic
+local lastDribbleTime = 0
+local glideDuration = 0.7
+local dribbleRemote = ReplicatedStorage:FindFirstChild("Dribble") or ReplicatedStorage:FindFirstChildWhichIsA("RemoteEvent", true)
 
--- 🌀 Ball Magnet RunService.Heartbeat:Connect(function() local ball = workspace:FindFirstChild("Basketball") local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") if ball and root and (ball.Position - root.Position).Magnitude < 25 then ball.Position = root.Position + Vector3.new(0, 1.5, 0) end end)
+if dribbleRemote then
+	dribbleRemote.OnClientEvent:Connect(function()
+		lastDribbleTime = tick()
+		cooldownLabel:Set({
+			Content = "Last: " .. os.date("%H:%M:%S")
+		})
 
--- 🚶️ Maintain Speed RunService.Heartbeat:Connect(function() local human = plr.Character and plr.Character:FindFirstChild("Humanoid") if human then human.WalkSpeed = walkSpeed end end)
+		local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+		if root then
+			local dir = root.CFrame.LookVector
+			local bodyVel = Instance.new("BodyVelocity")
+			bodyVel.Velocity = dir * glidePower
+			bodyVel.MaxForce = Vector3.new(1e5, 0, 1e5)
+			bodyVel.P = 1e4
+			bodyVel.Parent = root
+			game.Debris:AddItem(bodyVel, glideDuration)
+		end
+	end)
+end
 
--- 📂 Load Config Rayfield:LoadConfiguration()
+-- 📱 Mobile Glide Button
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+local Button = Instance.new("TextButton", ScreenGui)
+Button.Size = UDim2.new(0, 100, 0, 40)
+Button.Position = UDim2.new(0.85, 0, 0.85, 0)
+Button.Text = "Glide"
+Button.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+Button.TextColor3 = Color3.new(1, 1, 1)
+Button.TextScaled = true
+Button.Visible = true
 
+Button.MouseButton1Click:Connect(function()
+	local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+	if root then
+		local dir = root.CFrame.LookVector
+		local bodyVel = Instance.new("BodyVelocity")
+		bodyVel.Velocity = dir * glidePower
+		bodyVel.MaxForce = Vector3.new(1e5, 0, 1e5)
+		bodyVel.P = 1e4
+		bodyVel.Parent = root
+		game.Debris:AddItem(bodyVel, glideDuration)
+	end
+end)
