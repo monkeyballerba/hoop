@@ -98,8 +98,10 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- 🏀 Dribble Glide Logic
+-- 🏀 Dribble Glide Logic (smooth longer slide)
 local lastDribbleTime = 0
+local glideDuration = 0.7 -- seconds to glide after dribble
+
 local dribbleRemote = ReplicatedStorage:FindFirstChild("Dribble") or ReplicatedStorage:FindFirstChildWhichIsA("RemoteEvent", true)
 
 if dribbleRemote then
@@ -108,7 +110,14 @@ if dribbleRemote then
         if root and tick() - lastDribbleTime > 0.3 then
             lastDribbleTime = tick()
             local direction = root.CFrame.LookVector
-            root.Velocity = Vector3.new(direction.X, 0, direction.Z) * glidePower + Vector3.new(0, 20, 0)
+            task.spawn(function()
+                local startTime = tick()
+                while tick() - startTime < glideDuration do
+                    -- Apply velocity each frame for smooth glide
+                    root.Velocity = Vector3.new(direction.X, 0, direction.Z) * glidePower + Vector3.new(0, 15, 0)
+                    task.wait()
+                end
+            end)
         end
     end)
 end
