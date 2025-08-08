@@ -8,29 +8,26 @@ local Window = Rayfield:CreateWindow({
     LoadingSubtitle = "by Lazy",
     ConfigurationSaving = {
         Enabled = true,
-        FolderName = "ArcadeBB", -- Saved to workspace
+        FolderName = "ArcadeBB",
         FileName = "ArcadeBB_Config"
     },
     Discord = {
         Enabled = true,
-        Invite = "ura", -- Your invite code
+        Invite = "ura",
         RememberJoins = true
     },
     KeySystem = false,
     ToggleUIKeybind = Enum.KeyCode.K
 })
 
--- ⚙️ Settings
+-- ⚙️ Variables
 local autoGreen = false
-local autoGuard = false
 local ws = 16
 local plr = game.Players.LocalPlayer
-local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local char = plr.Character or plr.CharacterAdded:Wait()
 
--- 📁 Create Main Tab
-local MainTab = Window:CreateTab("Main", 1234567890) -- Replace with actual assetId or use icon name
+-- 📁 Main Tab
+local MainTab = Window:CreateTab("Main", 1234567890)
 
 -- 🔘 Auto Green Toggle
 MainTab:CreateToggle({
@@ -52,21 +49,24 @@ MainTab:CreateSlider({
     Flag = "SpeedSlider",
     Callback = function(val)
         ws = val
+        local human = plr.Character and plr.Character:FindFirstChild("Humanoid")
+        if human then
+            human.WalkSpeed = val
+        end
     end
 })
 
--- 🛡️ Auto Guard Toggle
-MainTab:CreateToggle({
-    Name = "Auto Guard",
-    CurrentValue = false,
-    Flag = "AutoGuardToggle",
-    Callback = function(val)
-        autoGuard = val
+-- 🕹️ Glide Button (for mobile)
+MainTab:CreateButton({
+    Name = "Glide Forward",
+    Callback = function()
+        local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+        if root then
+            local forward = root.CFrame.LookVector * (ws + 50)
+            root.Velocity = Vector3.new(forward.X, 30, forward.Z)
+        end
     end
 })
-
--- ✈️ Glide Key Info
-MainTab:CreateParagraph({Title = "Glide Key", Content = "Press [G] to glide forward."})
 
 -- 🟢 Auto Green Hook
 local mt = getrawmetatable(game)
@@ -79,7 +79,7 @@ mt.__namecall = newcclosure(function(self, ...)
 
     if not checkcaller() and method == "FireServer" and tostring(self) == "Shoot" then
         if autoGreen then
-            args[2] = -0.98 -- Perfect timing
+            args[2] = -0.98
         end
         return oldNamecall(self, unpack(args))
     end
@@ -87,7 +87,7 @@ mt.__namecall = newcclosure(function(self, ...)
     return oldNamecall(self, ...)
 end)
 
--- 🚶 Constant WalkSpeed
+-- 🚶 Keep WalkSpeed active
 RunService.Heartbeat:Connect(function()
     local human = plr.Character and plr.Character:FindFirstChild("Humanoid")
     if human then
@@ -95,51 +95,5 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- 🕊️ Glide on [G] Key
-UIS.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.G then
-        local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-        if root then
-            root.Velocity = root.CFrame.LookVector * 75 + Vector3.new(0, 20, 0)
-        end
-    end
-end)
-
--- 🔍 Get Opponent Holding Ball
-local function getBallHandler()
-    local closest, dist = nil, math.huge
-    for _, p in pairs(game.Players:GetPlayers()) do
-        if p ~= plr and p.Team ~= plr.Team and p.Character then
-            local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-            if hrp and p.Character:FindFirstChild("Basketball") then
-                local myHRP = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-                if myHRP then
-                    local d = (myHRP.Position - hrp.Position).Magnitude
-                    if d < dist and d < 50 then
-                        closest = hrp
-                        dist = d
-                    end
-                end
-            end
-        end
-    end
-    return closest
-end
-
--- 🔁 Auto Guard Movement
-RunService.RenderStepped:Connect(function()
-    if autoGuard and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-        local myHRP = plr.Character.HumanoidRootPart
-        local target = getBallHandler()
-
-        if target then
-            local frontPos = target.Position + (target.CFrame.LookVector * -2)
-            local moveDir = (frontPos - myHRP.Position).Unit * ws
-            myHRP.Velocity = Vector3.new(moveDir.X, myHRP.Velocity.Y, moveDir.Z)
-        end
-    end
-end)
-
--- ✅ ✅ ✅ Load Rayfield UI Configuration (Required!)
+-- ✅ Load saved values
 Rayfield:LoadConfiguration()
