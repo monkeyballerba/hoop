@@ -22,9 +22,11 @@ local Window = Rayfield:CreateWindow({
 
 -- ⚙️ Variables
 local autoGreen = false
-local ws = 16
+local walkSpeed = 16
+local glidePower = 50
 local plr = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- 📁 Main Tab
 local MainTab = Window:CreateTab("Main", 1234567890)
@@ -45,10 +47,10 @@ MainTab:CreateSlider({
     Range = {5, 100},
     Increment = 1,
     Suffix = "Speed",
-    CurrentValue = ws,
+    CurrentValue = walkSpeed,
     Flag = "SpeedSlider",
     Callback = function(val)
-        ws = val
+        walkSpeed = val
         local human = plr.Character and plr.Character:FindFirstChild("Humanoid")
         if human then
             human.WalkSpeed = val
@@ -56,15 +58,16 @@ MainTab:CreateSlider({
     end
 })
 
--- 🕹️ Glide Button (for mobile)
-MainTab:CreateButton({
-    Name = "Glide Forward",
-    Callback = function()
-        local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-        if root then
-            local forward = root.CFrame.LookVector * (ws + 50)
-            root.Velocity = Vector3.new(forward.X, 30, forward.Z)
-        end
+-- ✈️ Glide Power Slider
+MainTab:CreateSlider({
+    Name = "Dribble Glide Power",
+    Range = {10, 200},
+    Increment = 5,
+    Suffix = "Glide",
+    CurrentValue = glidePower,
+    Flag = "GlideSlider",
+    Callback = function(val)
+        glidePower = val
     end
 })
 
@@ -91,9 +94,26 @@ end)
 RunService.Heartbeat:Connect(function()
     local human = plr.Character and plr.Character:FindFirstChild("Humanoid")
     if human then
-        human.WalkSpeed = ws
+        human.WalkSpeed = walkSpeed
     end
 end)
+
+-- 🏀 Dribble Glide Logic
+local lastDribbleTime = 0
+
+-- Hook into remote events to detect dribble
+local dribbleRemote = ReplicatedStorage:FindFirstChild("Dribble") or ReplicatedStorage:FindFirstChildWhichIsA("RemoteEvent", true)
+
+if dribbleRemote then
+    dribbleRemote.OnClientEvent:Connect(function(...)
+        local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+        if root and tick() - lastDribbleTime > 0.3 then -- small cooldown
+            lastDribbleTime = tick()
+            local direction = root.CFrame.LookVector
+            root.Velocity = Vector3.new(direction.X, 0, direction.Z) * glidePower + Vector3.new(0, 20, 0)
+        end
+    end)
+end
 
 -- ✅ Load saved values
 Rayfield:LoadConfiguration()
