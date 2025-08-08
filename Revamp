@@ -4,7 +4,7 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 -- 🪟 Create Window
 local Window = Rayfield:CreateWindow({
 	Name = "🏀 Arcade BB 🏀",
-	LoadingTitle = "Loading GUI...",
+	LoadingTitle = "Loading Beta...",
 	LoadingSubtitle = "by Lazy",
 	ConfigurationSaving = {
 		Enabled = true,
@@ -24,12 +24,12 @@ local Window = Rayfield:CreateWindow({
 local autoGreen = false
 local walkSpeed = 16
 local glidePower = 50
-local jumpPower = 50
-local ballMagnetEnabled = false
-local ballMagnetRange = 30 -- studs radius to attract the ball
+local glideDuration = 0.8 -- glide lasts slightly longer now
+local glideCooldown = false
 local plr = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local VirtualUser = game:GetService("VirtualUser")
 
 -- 📁 Main Tab
 local MainTab = Window:CreateTab("Main", 1234567890)
@@ -74,39 +74,77 @@ MainTab:CreateSlider({
 	end
 })
 
--- 🦘 Jump Power Slider
-MainTab:CreateSlider({
-	Name = "Jump Power",
-	Range = {20, 150},
-	Increment = 5,
-	Suffix = "Power",
-	CurrentValue = jumpPower,
-	Flag = "JumpPowerSlider",
-	Callback = function(val)
-		jumpPower = val
-		local human = plr.Character and plr.Character:FindFirstChild("Humanoid")
-		if human then
-			human.UseJumpPower = true
-			human.JumpPower = val
-		end
-	end
-})
-
--- 🧲 Ball Magnet Toggle
-MainTab:CreateToggle({
-	Name = "Ball Magnet",
-	CurrentValue = false,
-	Flag = "BallMagnetToggle",
-	Callback = function(val)
-		ballMagnetEnabled = val
-	end
-})
-
 -- 🟢 Auto Green Hook
 local mt = getrawmetatable(game)
 setreadonly(mt, false)
 local oldNamecall = mt.__namecall
 
+mt.__namecall = newcclosure(function(self, ...)
+	local method = getnamecallmethod()
+	local args = { ... }
+
+	if not checkcaller() and method == "FireServer" and tostring(self) == "Shoot" then  
+		if autoGreen then  
+			args[2] = -0.98  
+		end  
+		return oldNamecall(self, unpack(args))  
+	end  
+
+	return oldNamecall(self, ...)
+end)
+
+-- 🚶 Movement Loop
+RunService.Heartbeat:Connect(function()
+	local char = plr.Character
+	local human = char and char:FindFirstChild("Humanoid")
+
+	if human then
+		human.WalkSpeed = walkSpeed
+	end
+end)
+
+-- 🏀 Improved Dribble Glide Logic
+local dribbleRemote = ReplicatedStorage:FindFirstChild("Dribble") or ReplicatedStorage:FindFirstChildWhichIsA("RemoteEvent", true)
+
+if dribbleRemote then
+	dribbleRemote.OnClientEvent:Connect(function()
+		if glideCooldown then return end
+		glideCooldown = true
+
+		local char = plr.Character
+		local hrp = char and char:FindFirstChild("HumanoidRootPart")
+		local human = char and char:FindFirstChild("Humanoid")
+
+		if hrp and human then
+			local dir = hrp.CFrame.LookVector
+
+			local bodyVel = Instance.new("BodyVelocity")
+			bodyVel.Velocity = dir * glidePower * 2 -- stronger forward glide
+			bodyVel.MaxForce = Vector3.new(1e5, 0, 1e5)
+			bodyVel.P = 1e4
+			bodyVel.Parent = hrp
+
+			-- temporarily reduce friction for smooth glide
+			local origFriction = hrp.CustomPhysicalProperties
+			hrp.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0)
+
+			task.delay(glideDuration, function()
+				bodyVel:Destroy()
+				hrp.CustomPhysicalProperties = origFriction
+				glideCooldown = false
+			end)
+		else
+			glideCooldown = false
+		end
+	end)
+end
+
+-- 🔒 Anti-AFK
+plr.Idled:Connect(function()
+	VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+	wait(1)
+	VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+end)
 mt.__namecall = newcclosure(function(self, ...)
 	local method = getnamecallmethod()
 	local args = { ... }
