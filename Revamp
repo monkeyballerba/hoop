@@ -25,17 +25,14 @@ local autoGreen = false
 local walkSpeed = 16
 local glidePower = 50
 local jumpPower = 50
-local spinBot = false
-
+local ballMagnetEnabled = false
+local ballMagnetRange = 30 -- studs radius to attract the ball
 local plr = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
 
--- 📁 Tabs
+-- 📁 Main Tab
 local MainTab = Window:CreateTab("Main", 1234567890)
-local ExtraTab = Window:CreateTab("Extras", 1234567890)
-local CosmeticTab = Window:CreateTab("Cosmetics", 1234567890)
 
 -- 🔘 Auto Green Toggle
 MainTab:CreateToggle({
@@ -57,6 +54,23 @@ MainTab:CreateSlider({
 	Flag = "SpeedSlider",
 	Callback = function(val)
 		walkSpeed = val
+		local human = plr.Character and plr.Character:FindFirstChild("Humanoid")
+		if human then
+			human.WalkSpeed = val
+		end
+	end
+})
+
+-- ✈️ Dribble Glide Power Slider
+MainTab:CreateSlider({
+	Name = "Dribble Glide Power",
+	Range = {10, 200},
+	Increment = 5,
+	Suffix = "Glide",
+	CurrentValue = glidePower,
+	Flag = "GlideSlider",
+	Callback = function(val)
+		glidePower = val
 	end
 })
 
@@ -78,35 +92,90 @@ MainTab:CreateSlider({
 	end
 })
 
--- ✈️ Glide Power Slider
-MainTab:CreateSlider({
-	Name = "Dribble Glide Power",
-	Range = {10, 200},
-	Increment = 5,
-	Suffix = "Glide",
-	CurrentValue = glidePower,
-	Flag = "GlideSlider",
-	Callback = function(val)
-		glidePower = val
-	end
-})
-
--- 🔄 SpinBot Toggle
-ExtraTab:CreateToggle({
-	Name = "SpinBot",
+-- 🧲 Ball Magnet Toggle
+MainTab:CreateToggle({
+	Name = "Ball Magnet",
 	CurrentValue = false,
-	Flag = "SpinToggle",
+	Flag = "BallMagnetToggle",
 	Callback = function(val)
-		spinBot = val
+		ballMagnetEnabled = val
 	end
 })
 
--- 📟 Dribble Cooldown Label (dynamic)
-local cooldownLabel = ExtraTab:CreateParagraph({
-	Title = "Last Dribble:",
-	Content = "Not used yet."
-})
+-- 🟢 Auto Green Hook
+local mt = getrawmetatable(game)
+setreadonly(mt, false)
+local oldNamecall = mt.__namecall
 
+mt.__namecall = newcclosure(function(self, ...)
+	local method = getnamecallmethod()
+	local args = { ... }
+
+	if not checkcaller() and method == "FireServer" and tostring(self) == "Shoot" then  
+		if autoGreen then  
+			args[2] = -0.98  
+		end  
+		return oldNamecall(self, unpack(args))  
+	end  
+
+	return oldNamecall(self, ...)
+end)
+
+-- 🚶 Movement Loop with Ball Magnet and JumpPower
+RunService.Heartbeat:Connect(function()
+	local char = plr.Character
+	local human = char and char:FindFirstChild("Humanoid")
+	local root = char and char:FindFirstChild("HumanoidRootPart")
+
+	if human then
+		human.WalkSpeed = walkSpeed
+		human.UseJumpPower = true
+		human.JumpPower = jumpPower
+	end
+
+	if ballMagnetEnabled and root then
+		local ball = workspace:FindFirstChild("Basketball") -- Change "Basketball" to actual ball name if different
+		if ball and ball:IsA("BasePart") then
+			local distance = (ball.Position - root.Position).Magnitude
+			if distance <= ballMagnetRange then
+				local bp = ball:FindFirstChild("BallMagnetBP")
+				if not bp then
+					bp = Instance.new("BodyPosition")
+					bp.Name = "BallMagnetBP"
+					bp.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+					bp.P = 1e4
+					bp.Parent = ball
+				end
+				bp.Position = root.Position + Vector3.new(0, 3, 0)
+			else
+				local bp = ball:FindFirstChild("BallMagnetBP")
+				if bp then
+					bp:Destroy()
+				end
+			end
+		end
+	end
+end)
+
+-- 🏀 Dribble Glide Logic
+local glideDuration = 0.7
+local dribbleRemote = ReplicatedStorage:FindFirstChild("Dribble") or ReplicatedStorage:FindFirstChildWhichIsA("RemoteEvent", true)
+
+if dribbleRemote then
+	dribbleRemote.OnClientEvent:Connect(function()
+		local char = plr.Character
+		local hrp = char and char:FindFirstChild("HumanoidRootPart")
+		if hrp then
+			local dir = hrp.CFrame.LookVector
+			local bodyVel = Instance.new("BodyVelocity")
+			bodyVel.Velocity = dir * glidePower
+			bodyVel.MaxForce = Vector3.new(1e5, 0, 1e5)
+			bodyVel.P = 1e4
+			bodyVel.Parent = hrp
+			game.Debris:AddItem(bodyVel, glideDuration)
+		end
+	end)
+end
 -- 🎨 Cosmetics Section (UI Only)
 CosmeticTab:CreateParagraph({
 	Title = "Coming Soon!",
