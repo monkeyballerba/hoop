@@ -1,7 +1,26 @@
--- // Load Octohook UI Library
-local library = loadstring(game:HttpGet('https://raw.githubusercontent.com/drillygzzly/Other/main/informant-ui.lua'))()
+-- ⚠️ Load Rayfield UI Library
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- // Variables
+-- 🪟 Create Window
+local Window = Rayfield:CreateWindow({
+	Name = "🏀 Arcade BB 🏀",
+	LoadingTitle = "Loading Beta...",
+	LoadingSubtitle = "by Lazy",
+	ConfigurationSaving = {
+		Enabled = true,
+		FolderName = "ArcadeBB",
+		FileName = "ArcadeBB_Config"
+	},
+	Discord = {
+		Enabled = true,
+		Invite = "ura",
+		RememberJoins = true
+	},
+	KeySystem = false,
+	ToggleUIKeybind = Enum.KeyCode.K
+})
+
+-- ⚙️ Variables
 local autoGreen = false
 local walkSpeed = 16
 local glidePower = 50
@@ -12,73 +31,81 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local VirtualUser = game:GetService("VirtualUser")
 
--- // Octohook UI Setup
-local window = library:CreateWindow({
-    Name = "🏀 Arcade BB 🏀",
-    Theme = "Informant_V1"
+-- 📁 Main Tab
+local MainTab = Window:CreateTab("Main", 1234567890)
+
+-- 🔘 Auto Green Toggle
+MainTab:CreateToggle({
+	Name = "Auto Green",
+	CurrentValue = false,
+	Flag = "AutoGreenToggle",
+	Callback = function(val)
+		autoGreen = val
+	end
 })
 
--- // Main Tab
-local mainTab = window:AddTab("Main")
+-- 🧍 WalkSpeed Slider
+MainTab:CreateSlider({
+	Name = "WalkSpeed",
+	Range = {5, 100},
+	Increment = 1,
+	Suffix = "Speed",
+	CurrentValue = walkSpeed,
+	Flag = "SpeedSlider",
+	Callback = function(val)
+		walkSpeed = val
+		local human = plr.Character and plr.Character:FindFirstChild("Humanoid")
+		if human then
+			human.WalkSpeed = val
+		end
+	end
+})
 
--- // Aimbot Group
-local mainGroup = mainTab:AddGroupbox("Shooting")
+-- ✈️ Dribble Glide Power Slider
+MainTab:CreateSlider({
+	Name = "Dribble Glide Power",
+	Range = {10, 200},
+	Increment = 5,
+	Suffix = "Glide",
+	CurrentValue = glidePower,
+	Flag = "GlideSlider",
+	Callback = function(val)
+		glidePower = val
+	end
+})
 
--- // Auto Green Toggle
-mainGroup:AddToggle("Auto Green", autoGreen, function(val)
-    autoGreen = val
-end):AddTooltip("Automatically gets a perfect shot.")
-
--- // Movement Group
-local movementGroup = mainTab:AddGroupbox("Movement")
-
--- // Walkspeed Slider
-movementGroup:AddSlider("WalkSpeed", 5, 100, walkSpeed, function(val)
-    walkSpeed = val
-    local human = plr.Character and plr.Character:FindFirstChild("Humanoid")
-    if human then
-        human.WalkSpeed = val
-    end
-end):AddTooltip("Adjusts your character's walking speed.")
-
--- // Dribble Glide Power Slider
-movementGroup:AddSlider("Dribble Glide Power", 10, 200, glidePower, function(val)
-    glidePower = val
-end):AddTooltip("Adjusts the power of the dribble glide.")
-
--- // Additional Group for other features
-local miscGroup = mainTab:AddGroupbox("Misc")
-
--- // Anti-AFK Info
-miscGroup:AddLabel("Anti-AFK is active.").AddTooltip("Prevents you from being kicked for inactivity.")
-
----
-### Core Functions and Hooks
-
-This section contains the core functionality of the script, including the `Auto Green` hack, movement loop, `Dribble Glide`, and `Anti-AFK`. These parts are essential to the script's features and are not directly related to the UI.
-
-#### Auto Green Hook
-
-This code hooks into the game's remote call for shooting and modifies the shot value to guarantee a "green" or perfect shot if the `autoGreen` toggle is enabled.
-
-```lua
+-- 🟢 Auto Green Hook
 local mt = getrawmetatable(game)
 setreadonly(mt, false)
 local oldNamecall = mt.__namecall
 
 mt.__namecall = newcclosure(function(self, ...)
-    local method = getnamecallmethod()
-    local args = { ... }
+	local method = getnamecallmethod()
+	local args = { ... }
 
-    if not checkcaller() and method == "FireServer" and tostring(self) == "Shoot" then
-        if autoGreen then
-            args[2] = -0.98
-        end
-        return oldNamecall(self, unpack(args))
-    end
+	if not checkcaller() and method == "FireServer" and tostring(self) == "Shoot" then  
+		if autoGreen then  
+			args[2] = -0.98  
+		end  
+		return oldNamecall(self, unpack(args))  
+	end  
 
-    return oldNamecall(self, ...)
+	return oldNamecall(self, ...)
 end)
+
+-- 🚶 Movement Loop
+RunService.Heartbeat:Connect(function()
+	local char = plr.Character
+	local human = char and char:FindFirstChild("Humanoid")
+
+	if human then
+		human.WalkSpeed = walkSpeed
+	end
+end)
+
+-- 🏀 Improved Dribble Glide Logic
+local dribbleRemote = ReplicatedStorage:FindFirstChild("Dribble") or ReplicatedStorage:FindFirstChildWhichIsA("RemoteEvent", true)
+
 if dribbleRemote then
 	dribbleRemote.OnClientEvent:Connect(function()
 		if glideCooldown then return end
@@ -117,160 +144,4 @@ plr.Idled:Connect(function()
 	VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
 	wait(1)
 	VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-end)
-mt.__namecall = newcclosure(function(self, ...)
-	local method = getnamecallmethod()
-	local args = { ... }
-
-	if not checkcaller() and method == "FireServer" and tostring(self) == "Shoot" then  
-		if autoGreen then  
-			args[2] = -0.98  
-		end  
-		return oldNamecall(self, unpack(args))  
-	end  
-
-	return oldNamecall(self, ...)
-end)
-
--- 🚶 Movement Loop with Ball Magnet and JumpPower
-RunService.Heartbeat:Connect(function()
-	local char = plr.Character
-	local human = char and char:FindFirstChild("Humanoid")
-	local root = char and char:FindFirstChild("HumanoidRootPart")
-
-	if human then
-		human.WalkSpeed = walkSpeed
-		human.UseJumpPower = true
-		human.JumpPower = jumpPower
-	end
-
-	if ballMagnetEnabled and root then
-		local ball = workspace:FindFirstChild("Basketball") -- Change "Basketball" to actual ball name if different
-		if ball and ball:IsA("BasePart") then
-			local distance = (ball.Position - root.Position).Magnitude
-			if distance <= ballMagnetRange then
-				local bp = ball:FindFirstChild("BallMagnetBP")
-				if not bp then
-					bp = Instance.new("BodyPosition")
-					bp.Name = "BallMagnetBP"
-					bp.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-					bp.P = 1e4
-					bp.Parent = ball
-				end
-				bp.Position = root.Position + Vector3.new(0, 3, 0)
-			else
-				local bp = ball:FindFirstChild("BallMagnetBP")
-				if bp then
-					bp:Destroy()
-				end
-			end
-		end
-	end
-end)
-
--- 🏀 Dribble Glide Logic
-local glideDuration = 0.7
-local dribbleRemote = ReplicatedStorage:FindFirstChild("Dribble") or ReplicatedStorage:FindFirstChildWhichIsA("RemoteEvent", true)
-
-if dribbleRemote then
-	dribbleRemote.OnClientEvent:Connect(function()
-		local char = plr.Character
-		local hrp = char and char:FindFirstChild("HumanoidRootPart")
-		if hrp then
-			local dir = hrp.CFrame.LookVector
-			local bodyVel = Instance.new("BodyVelocity")
-			bodyVel.Velocity = dir * glidePower
-			bodyVel.MaxForce = Vector3.new(1e5, 0, 1e5)
-			bodyVel.P = 1e4
-			bodyVel.Parent = hrp
-			game.Debris:AddItem(bodyVel, glideDuration)
-		end
-	end)
-end
--- 🎨 Cosmetics Section (UI Only)
-CosmeticTab:CreateParagraph({
-	Title = "Coming Soon!",
-	Content = "Unlockable hats, shoes, particles, and more!"
-})
-
--- 🟢 Auto Green Hook
-local mt = getrawmetatable(game)
-setreadonly(mt, false)
-local oldNamecall = mt.__namecall
-
-mt.__namecall = newcclosure(function(self, ...)
-	local method = getnamecallmethod()
-	local args = { ... }
-
-	if not checkcaller() and method == "FireServer" and tostring(self) == "Shoot" then
-		if autoGreen then
-			args[2] = -0.98
-		end
-		return oldNamecall(self, unpack(args))
-	end
-
-	return oldNamecall(self, ...)
-end)
-
--- 🚶 Constant Stat Sync (WalkSpeed, JumpPower, SpinBot)
-RunService.Heartbeat:Connect(function()
-	local human = plr.Character and plr.Character:FindFirstChild("Humanoid")
-	if human then
-		human.WalkSpeed = walkSpeed
-		human.UseJumpPower = true
-		human.JumpPower = jumpPower
-	end
-
-	if spinBot and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-		plr.Character.HumanoidRootPart.CFrame *= CFrame.Angles(0, math.rad(5), 0)
-	end
-end)
-
--- 🏀 Dribble Glide Logic
-local lastDribbleTime = 0
-local glideDuration = 0.7
-local dribbleRemote = ReplicatedStorage:FindFirstChild("Dribble") or ReplicatedStorage:FindFirstChildWhichIsA("RemoteEvent", true)
-
-if dribbleRemote then
-	dribbleRemote.OnClientEvent:Connect(function()
-		lastDribbleTime = tick()
-		cooldownLabel:Set({
-			Content = "Last: " .. os.date("%H:%M:%S")
-		})
-
-		local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-		if root then
-			local dir = root.CFrame.LookVector
-			local bodyVel = Instance.new("BodyVelocity")
-			bodyVel.Velocity = dir * glidePower
-			bodyVel.MaxForce = Vector3.new(1e5, 0, 1e5)
-			bodyVel.P = 1e4
-			bodyVel.Parent = root
-			game.Debris:AddItem(bodyVel, glideDuration)
-		end
-	end)
-end
-
--- 📱 Mobile Glide Button
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-local Button = Instance.new("TextButton", ScreenGui)
-Button.Size = UDim2.new(0, 100, 0, 40)
-Button.Position = UDim2.new(0.85, 0, 0.85, 0)
-Button.Text = "Glide"
-Button.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
-Button.TextColor3 = Color3.new(1, 1, 1)
-Button.TextScaled = true
-Button.Visible = true
-
-Button.MouseButton1Click:Connect(function()
-	local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-	if root then
-		local dir = root.CFrame.LookVector
-		local bodyVel = Instance.new("BodyVelocity")
-		bodyVel.Velocity = dir * glidePower
-		bodyVel.MaxForce = Vector3.new(1e5, 0, 1e5)
-		bodyVel.P = 1e4
-		bodyVel.Parent = root
-		game.Debris:AddItem(bodyVel, glideDuration)
-	end
 end)
