@@ -1,111 +1,84 @@
--- ⚠️ Load Rayfield UI Library
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+-- // Load Octohook UI Library
+local library = loadstring(game:HttpGet('https://raw.githubusercontent.com/drillygzzly/Other/main/informant-ui.lua'))()
 
--- 🪟 Create Window
-local Window = Rayfield:CreateWindow({
-	Name = "🏀 Arcade BB 🏀",
-	LoadingTitle = "Loading Beta...",
-	LoadingSubtitle = "by Lazy",
-	ConfigurationSaving = {
-		Enabled = true,
-		FolderName = "ArcadeBB",
-		FileName = "ArcadeBB_Config"
-	},
-	Discord = {
-		Enabled = true,
-		Invite = "ura",
-		RememberJoins = true
-	},
-	KeySystem = false,
-	ToggleUIKeybind = Enum.KeyCode.K
-})
-
--- ⚙️ Variables
+-- // Variables
 local autoGreen = false
 local walkSpeed = 16
 local glidePower = 50
-local glideDuration = 0.8 -- glide lasts slightly longer now
+local glideDuration = 0.8
 local glideCooldown = false
 local plr = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local VirtualUser = game:GetService("VirtualUser")
 
--- 📁 Main Tab
-local MainTab = Window:CreateTab("Main", 1234567890)
-
--- 🔘 Auto Green Toggle
-MainTab:CreateToggle({
-	Name = "Auto Green",
-	CurrentValue = false,
-	Flag = "AutoGreenToggle",
-	Callback = function(val)
-		autoGreen = val
-	end
+-- // Octohook UI Setup
+local window = library:CreateWindow({
+    Name = "🏀 Arcade BB 🏀",
+    Theme = "Informant_V1"
 })
 
--- 🧍 WalkSpeed Slider
-MainTab:CreateSlider({
-	Name = "WalkSpeed",
-	Range = {5, 100},
-	Increment = 1,
-	Suffix = "Speed",
-	CurrentValue = walkSpeed,
-	Flag = "SpeedSlider",
-	Callback = function(val)
-		walkSpeed = val
-		local human = plr.Character and plr.Character:FindFirstChild("Humanoid")
-		if human then
-			human.WalkSpeed = val
-		end
-	end
-})
+-- // Main Tab
+local mainTab = window:AddTab("Main")
 
--- ✈️ Dribble Glide Power Slider
-MainTab:CreateSlider({
-	Name = "Dribble Glide Power",
-	Range = {10, 200},
-	Increment = 5,
-	Suffix = "Glide",
-	CurrentValue = glidePower,
-	Flag = "GlideSlider",
-	Callback = function(val)
-		glidePower = val
-	end
-})
+-- // Aimbot Group
+local mainGroup = mainTab:AddGroupbox("Shooting")
 
--- 🟢 Auto Green Hook
+-- // Auto Green Toggle
+mainGroup:AddToggle("Auto Green", autoGreen, function(val)
+    autoGreen = val
+end):AddTooltip("Automatically gets a perfect shot.")
+
+-- // Movement Group
+local movementGroup = mainTab:AddGroupbox("Movement")
+
+-- // Walkspeed Slider
+movementGroup:AddSlider("WalkSpeed", 5, 100, walkSpeed, function(val)
+    walkSpeed = val
+    local human = plr.Character and plr.Character:FindFirstChild("Humanoid")
+    if human then
+        human.WalkSpeed = val
+    end
+end):AddTooltip("Adjusts your character's walking speed.")
+
+-- // Dribble Glide Power Slider
+movementGroup:AddSlider("Dribble Glide Power", 10, 200, glidePower, function(val)
+    glidePower = val
+end):AddTooltip("Adjusts the power of the dribble glide.")
+
+-- // Additional Group for other features
+local miscGroup = mainTab:AddGroupbox("Misc")
+
+-- // Anti-AFK Info
+miscGroup:AddLabel("Anti-AFK is active.").AddTooltip("Prevents you from being kicked for inactivity.")
+
+---
+### Core Functions and Hooks
+
+This section contains the core functionality of the script, including the `Auto Green` hack, movement loop, `Dribble Glide`, and `Anti-AFK`. These parts are essential to the script's features and are not directly related to the UI.
+
+#### Auto Green Hook
+
+This code hooks into the game's remote call for shooting and modifies the shot value to guarantee a "green" or perfect shot if the `autoGreen` toggle is enabled.
+
+```lua
 local mt = getrawmetatable(game)
 setreadonly(mt, false)
 local oldNamecall = mt.__namecall
 
 mt.__namecall = newcclosure(function(self, ...)
-	local method = getnamecallmethod()
-	local args = { ... }
+    local method = getnamecallmethod()
+    local args = { ... }
 
-	if not checkcaller() and method == "FireServer" and tostring(self) == "Shoot" then  
-		if autoGreen then  
-			args[2] = -0.98  
-		end  
-		return oldNamecall(self, unpack(args))  
-	end  
+    if not checkcaller() and method == "FireServer" and tostring(self) == "Shoot" then
+        if autoGreen then
+            args[2] = -0.98
+        end
+        return oldNamecall(self, unpack(args))
+    end
 
-	return oldNamecall(self, ...)
+    return oldNamecall(self, ...)
 end)
-
--- 🚶 Movement Loop
-RunService.Heartbeat:Connect(function()
-	local char = plr.Character
-	local human = char and char:FindFirstChild("Humanoid")
-
-	if human then
-		human.WalkSpeed = walkSpeed
-	end
-end)
-
--- 🏀 Improved Dribble Glide Logic
-local dribbleRemote = ReplicatedStorage:FindFirstChild("Dribble") or ReplicatedStorage:FindFirstChildWhichIsA("RemoteEvent", true)
-
 if dribbleRemote then
 	dribbleRemote.OnClientEvent:Connect(function()
 		if glideCooldown then return end
